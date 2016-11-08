@@ -1,5 +1,19 @@
-Untitled
+Analysis of Quantitative Proteomics Data
 ================
+
+The result of a proteomic quantitative analysis is a list of peptide and protein abundances for every protein in different samples, or abundance ratios between the samples. The downstream interpretation of these data varies according to the experimental design. In this chapter we will describe different generic methods for the interpretation of quantitative datasets.
+
+The dataset used here for illustrative purposes is freely available through the ProteomeXchange [(1)](#references) consortium via the PRIDE [(2)](#references) partner repository under the accession number PXD000441, and available in the *resources* folder under *Results\_MQ\_5cell-line-mix*. It consists of five cell lines derived from acute myeloid leukemia (AML) patients measured with a spiked-in internal stanard (IS) obtained from the combination of the same five AML cell lines that have been metabolically labeled with heavy isotopes [(3)](#references) and analyzed using MaxQuant [(4)](#references) version 1.4.1.2. See [(5)](#references) for details.
+
+This chapter introduces the basic methods, and is by no means aiming at covering all possibilities or present a reference workflow. Please continue exploring the data on your own and critically adapt the interpretation workflow to your experiment - there is no one workflow fits all!
+
+References
+----------
+
+1.  [Vizcaino, J.A. et al., *ProteomeXchange provides globally coordinated proteomics data submission and dissemination*, Nature Biotechnology, 2014](https://www.ncbi.nlm.nih.gov/pubmed/24727771)
+2.  [Martens, L. et al., *PRIDE: the proteomics identifications database*, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
+3.  [Geiger, T. et al., *Super-SILAC mix for quantitative proteomics of human tumor tissue*, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
+4.  [Cox, J. and Mann, M, *MaxQuant enables high peptide identification rates, individualized p.p.b. range mass accuracies and proteome-wide protein quantification*, Nature Biotechnology, 2008](https://www.ncbi.nlm.nih.gov/pubmed/19029910)
 
 GitHub Documents
 ----------------
