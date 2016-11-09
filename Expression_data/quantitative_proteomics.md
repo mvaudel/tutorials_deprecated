@@ -12,7 +12,7 @@ Installation
 
 This tutorial uses [R](https://www.r-project.org), a language that allows the simple manipulation of large datasets. We will use R from the open source [RSudio](www.rstudio.com) environment. Please make sure to have RStudio installed on your computer.
 
-We are going to use the [ggplot2](http://ggplot2.org/) library.
+We are going to use the [ggplot2](http://ggplot2.org/) library. If you did not install this package already, install it usng the *Packages* tab or run `install.packages("ggplot2")`.
 
 ``` r
 library(ggplot2)
