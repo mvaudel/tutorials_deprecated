@@ -63,7 +63,7 @@ paste("Number of only identified by site: ", nOnlyIdentifiedBySite[2], ", Others
 
     ## [1] "Number of only identified by site: 109, Others: 3873"
 
-Filter these lines and save the result in a new table.
+Filter these lines and put the result in a new table named \_proteinGroups.
 
 ``` r
 proteinGroups <- proteinGroupsInput[proteinGroupsInput$Contaminant != '+' & proteinGroupsInput$Reverse != '+' & proteinGroupsInput$Only.identified.by.site != '+',]
@@ -102,6 +102,21 @@ proteinGroupsRatios <- data.frame(proteinIDs = proteinGroups$Protein.IDs,
 diagnosisCellLines <- c("mv411", "ociAml3")
 relapseCellLines <- c("molm13", "nb4", "thp1")
 ```
+
+The ratios can be plotted against each others for different cell lines in a scatter plot using the code below.
+
+``` r
+cellLineX <- "mv411"
+cellLineY <- "ociAml3"
+scatterPlot <- ggplot()
+scatterPlot <- scatterPlot + geom_point(aes(x=proteinGroupsRatios[,cellLineX], y=proteinGroupsRatios[,cellLineY]), alpha=0.2, col="blue", size=1)
+scatterPlot <- scatterPlot + xlab(cellLineX) + ylab(cellLineY)
+plot(scatterPlot)
+```
+
+    ## Warning: Removed 1578 rows containing missing values (geom_point).
+
+![](quantitative_proteomics_files/figure-markdown_github/scatter_plot-1.png)
 
 It is possible to extract the ratios of a given protein.
 
@@ -173,8 +188,10 @@ categoryRelapse <- character(length(nMissingRelapse))
 categoryRelapse[] <- "Relapse"
 categories <- c(categoryDiagnosis, categoryRelapse)
 values <- c(nMissingDiagnosis, nMissingRelapse)
+
 missingValuesHistogramPlot <- ggplot()
 missingValuesHistogramPlot <- missingValuesHistogramPlot + geom_bar(aes(x=values, fill=categories), position = "dodge")
+missingValuesHistogramPlot <- missingValuesHistogramPlot + xlab("Number of missing values") + ylab("Density of proteins")
 plot(missingValuesHistogramPlot)
 ```
 
@@ -220,6 +237,7 @@ values <- c(validProteinGroupsRatios[,"molm13"],
 ratiosDensityPlot <- ggplot()
 ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
 ratiosDensityPlot <- ratiosDensityPlot + xlim(0, 5)
+ratiosDensityPlot <- ratiosDensityPlot + xlab("Ratio") + ylab("Density of proteins")
 plot(ratiosDensityPlot)
 ```
 
@@ -261,6 +279,7 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
 ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
+ratiosDensityPlot <- ratiosDensityPlot + xlab("Ratio") + ylab("Density of proteins")
 plot(ratiosDensityPlot)
 ```
 
@@ -310,6 +329,7 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
 ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
+ratiosDensityPlot <- ratiosDensityPlot + xlab("Ratio") + ylab("Density of proteins")
 plot(ratiosDensityPlot)
 ```
 
@@ -350,7 +370,7 @@ for (i in 1:length(validProteinGroupsRatios$proteinIDs)) {
   valuesRelapse <- validProteinGroupsRatios[i, names(validProteinGroupsRatios) %in% relapseCellLines]
   test <- t.test(valuesDiagnostic, valuesRelapse, alternative = "two.sided", paired = F)
   pValues <- c(pValues, test$p.value)
-  pLog <- c(pLog, -10*log10(test$p.value))
+  pLog <- c(pLog, -log10(test$p.value))
   ts <- c(ts, test$statistic)
   medianDiagnostic <- median(as.numeric(valuesDiagnostic), na.rm = T)
   medianRelapse <- median(as.numeric(valuesRelapse), na.rm = T)
@@ -377,8 +397,7 @@ measuredQuantiles <- sort(measuredQuantiles)
 qqPlot <- ggplot()
 qqPlot <- qqPlot + geom_point(aes(x=expectedQuantiles, y=measuredQuantiles), size = 1, col = "blue")
 qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.5, linetype = "dotted")
-qqPlot <- qqPlot + xlab("Expected Quantile")
-qqPlot <- qqPlot + ylab("Observed Quantile")
+qqPlot <- qqPlot + xlab("Expected Quantile") + ylab("Observed Quantile")
 plot(qqPlot)
 ```
 
@@ -392,8 +411,7 @@ We will now plot the p-value against the fold change between the two conditions.
 ``` r
 volcanoPlot <- ggplot()
 volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog), size = 1, alpha = 0.5, col = "blue")
-volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]")
-volcanoPlot <- volcanoPlot + ylab("p-value [-10log(p)]")
+volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
 plot(volcanoPlot)
 ```
 
@@ -448,3 +466,4 @@ References
 2.  [Martens, L. et al., *PRIDE: the proteomics identifications database*, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
 3.  [Geiger, T. et al., *Super-SILAC mix for quantitative proteomics of human tumor tissue*, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
 4.  [Cox, J. and Mann, M, *MaxQuant enables high peptide identification rates, individualized p.p.b. range mass accuracies and proteome-wide protein quantification*, Nature Biotechnology, 2008](https://www.ncbi.nlm.nih.gov/pubmed/19029910)
+5.  [Aasebo, E. et al. Performance of super-SILAC based quantitative proteomics for comparison of different acute myeloid leukemia (AML) cell lines, Proteomics, 2014](https://www.ncbi.nlm.nih.gov/pubmed/25044641)
