@@ -12,6 +12,10 @@ Installation
 
 This tutorial uses [R](https://www.r-project.org), a language that allows the simple manipulation of large datasets. We will use R from the open source [RSudio](www.rstudio.com) environment. Please make sure to have RStudio installed on your computer.
 
+Create a new project via the *File* -&gt; *New Projet* menu. Select *New Directory* -&gt; *Empty Project*, and select a folder for your project. Create a new script via the *File* -&gt; *New File* -&gt; *R Script* menu.
+
+The commands used in this tutorial are given in line and the results produced are preceded by '\#\#'. You can copy the commands of this tutorial in your script, where one line corresponds to a command. The commands can be run line by line using the *Run* button. Alternatively, you can run the entire script using the *Source* button. Note that it is also possible to run the commands in the *Console*.
+
 We are going to use the [ggplot2](http://ggplot2.org/) library. If you did not install this package already, install it usng the *Packages* tab or run `install.packages("ggplot2")`.
 
 ``` r
@@ -21,7 +25,7 @@ library(ggplot2)
 File import
 -----------
 
-The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables.
+The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables. Please download the file [*roteinGroups\_5cell-line-mix.txt*](https://github.com/mvaudel/tutorials/blob/master/Expression_data/proteinGroups_5cell-line-mix.txt) to your project folder. It should appear in the *Files* panel.
 
 ``` r
 proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
