@@ -18,7 +18,7 @@ This chapter introduces the basic methods, and is by no means aiming at covering
 This tutorial uses [R](https://www.r-project.org), a language that allows the simple manipulation of large datasets. We will use R from the open source [RSudio](www.rstudio.com) environment. Please make sure to have RStudio installed on your computer.
 
 We are going to use the [ggplot2](http://ggplot2.org/) library.
-```{r}
+```{r libraries}
 library(ggplot2)
 ```
 
@@ -26,13 +26,13 @@ library(ggplot2)
 
 The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables.
 
-```{r}
+```{r input}
 proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
 ```
 
 You should see the proteinGroupsInput in your _Environment_ panel. You can get the size of the table using the _length_ function.
 
-```{r}
+```{r input_size}
 nColumns <- length(proteinGroupsInput)
 nLines <- length(proteinGroupsInput$Protein.IDs)
 paste("Number of columns: ", nColumns, ", number of protein groups: ", nLines, sep="")
@@ -42,7 +42,7 @@ paste("Number of columns: ", nColumns, ", number of protein groups: ", nLines, s
 
 MaxQuant indicates contaminants, decoy sequences, and proteins only identified by site by a '+' in their columns. You can access the number of every category by using the _table_ function.
 
-```{r}
+```{r invalid_groups_count}
 nContaminants <- table(proteinGroupsInput$Contaminant)
 paste("Number of Contaminants: ", nContaminants[2], ", Others: ", nContaminants[1], sep="")
 nDecoys <- table(proteinGroupsInput$Reverse)
@@ -53,7 +53,7 @@ paste("Number of only identified by site: ", nOnlyIdentifiedBySite[2], ", Others
 
 Filter these lines and save the result in a new table.
 
-```{r}
+```{r invalid_groups_filter}
 proteinGroups <- proteinGroupsInput[proteinGroupsInput$Contaminant != '+' & proteinGroupsInput$Reverse != '+' & proteinGroupsInput$Only.identified.by.site != '+',]
 
 nLines <- length(proteinGroups$Protein.IDs)
@@ -77,7 +77,7 @@ Note that when importing the data in R, spaces and special characters in the col
 
 We will now store these values in a new table and save the columns of the cell lines at different conditions in two vectors.
 
-```{r}
+```{r ratios_extraction}
 proteinGroupsRatios <- data.frame(proteinIDs = proteinGroups$Protein.IDs, 
                      molm13 = proteinGroups$Ratio.H.L.normalized.E1, 
                      mv411 = proteinGroups$Ratio.H.L.normalized.E2,
@@ -90,19 +90,19 @@ relapseCellLines <- c("molm13", "nb4", "thp1")
 
 It is possible to extract the ratios of a given protein.
 
-```{r}
+```{r A0FGR8_ratios}
 proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0FGR8",]
 ```
 
 It is possible to extract the ratios of a given protein for a given condition.
 
-```{r}
+```{r A0FGR8_diagnosis_ratios}
 proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0FGR8", names(proteinGroupsRatios) %in% diagnosisCellLines]
 ```
 
 Note that some proteins have missing values.
 
-```{r}
+```{r A0JLT2_ratios}
 proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0JLT2",]
 ```
 
@@ -111,19 +111,19 @@ proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0JLT2",]
 
 It is possible to see whether a value is missing using the is.na function.
 
-```{r}
+```{r A0JLT2_missing}
 is.na(proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0JLT2",])
 ```
 
 The number of missing values for a condition can be obtained with the sum function.
 
-```{r}
+```{r A0JLT2_n_missing}
 sum(is.na(proteinGroupsRatios[proteinGroupsRatios$proteinIDs == "A0JLT2", names(proteinGroupsRatios) %in% diagnosisCellLines]))
 ```
 
 Filter the ratio table to have at least two valid values in every conition, i.e. no missing value at diagnosis and maximum one at relapse. Doing the sum on every row is done using rowSums.
 
-```{r}
+```{r filter_valid_values}
 nMissingDiagnosis <- rowSums(is.na(proteinGroupsRatios[, names(proteinGroupsRatios) %in% diagnosisCellLines]))
 nMissingRelapse <- rowSums(is.na(proteinGroupsRatios[, names(proteinGroupsRatios) %in% relapseCellLines]))
 validProteinGroupsRatios <- proteinGroupsRatios[nMissingDiagnosis == 0 & nMissingRelapse <= 1,]
@@ -135,7 +135,7 @@ paste("New number of protein groups: ", nLines, ", Number of protein groups remo
 
 The number of protein presenting missing values can be plotted using the code below.
 
-```{r}
+```{r plot_missing_values_histogram}
 categoryDiagnosis <- character(length(nMissingDiagnosis))
 categoryDiagnosis[] <- "Diagnosis"
 categoryRelapse <- character(length(nMissingRelapse))
@@ -151,7 +151,7 @@ plot(missingValuesHistogramPlot)
 
 The MaxQuant ratios are estimated as _Heavy/Light_, but our reference was on the _Heavy_ channel, we therefore need to invert the ratios in order to obtain a value representing the cell line to internal standard ratio.
 
-```{r}
+```{r ratio_inversion}
 validProteinGroupsRatios[,"molm13"] <- 1/validProteinGroupsRatios[,"molm13"]
 validProteinGroupsRatios[,"mv411"] <- 1/validProteinGroupsRatios[,"mv411"]
 validProteinGroupsRatios[,"nb4"] <- 1/validProteinGroupsRatios[,"nb4"]
@@ -161,7 +161,7 @@ validProteinGroupsRatios[,"thp1"] <- 1/validProteinGroupsRatios[,"thp1"]
 
 As one can see, the ratios are distributed over positive values around 1.
 
-```{r}
+```{r ratio_densities}
 categories <- c()
 categoryCellLine <- character(length(validProteinGroupsRatios[,"molm13"]))
 categoryCellLine[] <- "molm13"
@@ -184,14 +184,14 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"ociAml3"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
-ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1)
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
 ratiosDensityPlot <- ratiosDensityPlot + xlim(0, 5)
 plot(ratiosDensityPlot)
 ```
 
 Before further processing, we log transform these ratios to restore the symmetry around 1.
 
-```{r}
+```{r ratio_log}
 validProteinGroupsRatios[,"molm13"] <- log2(validProteinGroupsRatios[,"molm13"])
 validProteinGroupsRatios[,"mv411"] <- log2(validProteinGroupsRatios[,"mv411"])
 validProteinGroupsRatios[,"nb4"] <- log2(validProteinGroupsRatios[,"nb4"])
@@ -199,9 +199,9 @@ validProteinGroupsRatios[,"ociAml3"] <- log2(validProteinGroupsRatios[,"ociAml3"
 validProteinGroupsRatios[,"thp1"] <- log2(validProteinGroupsRatios[,"thp1"])
 ```
 
-The number of protein presenting missing values can be plotted using the code below.
+Now the distributions are centered around 0 and the ratios symmetrically distributed.
 
-```{r}
+```{r ratio_log_densities}
 categories <- c()
 categoryCellLine <- character(length(validProteinGroupsRatios[,"molm13"]))
 categoryCellLine[] <- "molm13"
@@ -224,13 +224,164 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"ociAml3"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
-ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1)
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
 plot(ratiosDensityPlot)
 ```
 
 ## Normalization of the ratios
 
-The ratios provided by MaxQuant are already normalized, but it can be useful to conduct an additional normalization to correct for biases.
+The ratios provided by MaxQuant are already normalized, but it can be useful to conduct an additional normalization to correct for eventual biases. Note: Don't forget to exclude missing values.
+
+```{r ratio_normalization}
+cellLineMedian <- median(validProteinGroupsRatios[,"molm13"], na.rm = T)
+validProteinGroupsRatios[,"molm13"] <- validProteinGroupsRatios[,"molm13"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"mv411"], na.rm = T)
+validProteinGroupsRatios[,"mv411"] <- validProteinGroupsRatios[,"mv411"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"nb4"], na.rm = T)
+validProteinGroupsRatios[,"nb4"] <- validProteinGroupsRatios[,"nb4"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"ociAml3"], na.rm = T)
+validProteinGroupsRatios[,"ociAml3"] <- validProteinGroupsRatios[,"ociAml3"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"thp1"], na.rm = T)
+validProteinGroupsRatios[,"thp1"] <- validProteinGroupsRatios[,"thp1"] - cellLineMedian
+```
+
+Removing the median put the center of the distributions at 0.
+
+```{r ratio_log_densities_normalized}
+categories <- c()
+categoryCellLine <- character(length(validProteinGroupsRatios[,"molm13"]))
+categoryCellLine[] <- "molm13"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"mv411"]))
+categoryCellLine[] <- "mv411"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"nb4"]))
+categoryCellLine[] <- "nb4"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"ociAml3"]))
+categoryCellLine[] <- "ociAml3"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"thp1"]))
+categoryCellLine[] <- "thp1"
+categories <- c(categories, categoryCellLine)
+values <- c(validProteinGroupsRatios[,"molm13"],
+            validProteinGroupsRatios[,"mv411"],
+            validProteinGroupsRatios[,"nb4"],
+            validProteinGroupsRatios[,"ociAml3"],
+            validProteinGroupsRatios[,"thp1"])
+ratiosDensityPlot <- ggplot()
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
+plot(ratiosDensityPlot)
+```
+
+## t-test
+
+We are going to evaluate the significance of the ratio between the two groups using a t-test. This example does not have sufficient number of replicates to draw any biological conclusion but this is just an example. Below is an example using A0FGR8.
+
+```{r t-test_A0FGR8}
+valuesDiagnostic <- validProteinGroupsRatios[validProteinGroupsRatios$proteinIDs == "A0FGR8", names(validProteinGroupsRatios) %in% diagnosisCellLines]
+valuesRelapse <- validProteinGroupsRatios[validProteinGroupsRatios$proteinIDs == "A0FGR8", names(validProteinGroupsRatios) %in% relapseCellLines]
+t.test(valuesDiagnostic, valuesRelapse, alternative = "two.sided", paired = F)
+```
+
+Note that the test run is actually a Welch Two Sample t-test, an extension of the Student t-test more reliable for samples of unequal variances. We create new columns containing the test statistics, as well as the fold change and -10log(p-value).
+
+```{r t-test}
+pValues <- c()
+ts <- c()
+fcs <- c()
+pLog <- c()
+for (i in 1:length(validProteinGroupsRatios$proteinIDs)) {
+  valuesDiagnostic <- validProteinGroupsRatios[i, names(validProteinGroupsRatios) %in% diagnosisCellLines]
+  valuesRelapse <- validProteinGroupsRatios[i, names(validProteinGroupsRatios) %in% relapseCellLines]
+  test <- t.test(valuesDiagnostic, valuesRelapse, alternative = "two.sided", paired = F)
+  pValues <- c(pValues, test$p.value)
+  pLog <- c(pLog, -10*log10(test$p.value))
+  ts <- c(ts, test$statistic)
+  medianDiagnostic <- median(as.numeric(valuesDiagnostic), na.rm = T)
+  medianRelapse <- median(as.numeric(valuesRelapse), na.rm = T)
+  fc <- medianRelapse-medianDiagnostic
+  fcs <- c(fcs, fc)
+}
+validProteinGroupsRatios$fc <- fcs
+validProteinGroupsRatios$tTestPValue <- pValues
+validProteinGroupsRatios$tTestPValueLog <- pLog
+validProteinGroupsRatios$tTestStatistic <- ts
+```
+
+## QQ Plot
+
+We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot).
+
+```{r qq_plot}
+expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=1)
+expectedQuantiles <- sort(expectedQuantiles)
+measuredQuantiles <- validProteinGroupsRatios$tTestStatistic
+measuredQuantiles <- sort(measuredQuantiles)
+
+qqPlot <- ggplot()
+qqPlot <- qqPlot + geom_point(aes(x=expectedQuantiles, y=measuredQuantiles), size = 1, col = "blue")
+qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.8)
+qqPlot <- qqPlot + xlab("Expected Quantile")
+qqPlot <- qqPlot + ylab("Observed Quantile")
+plot(qqPlot)
+```
+
+
+## Volcano Plot
+
+We will now plot the p-value against the fold change between the two conditions.
+
+```{r volcano_plot}
+volcanoPlot <- ggplot()
+volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog), size = 1, alpha = 0.5, col = "blue")
+volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]")
+volcanoPlot <- volcanoPlot + ylab("p-value [-10log(p)]")
+plot(volcanoPlot)
+```
+
+
+## Missing values imputation
+
+For the following, we are going to impute the missing values and assign them the value 0.
+
+```{r missing_values}
+for (i in 1:length(diagnosisCellLines)) {
+  validProteinGroupsRatios[,diagnosisCellLines[i]] <- ifelse(is.na(validProteinGroupsRatios[,diagnosisCellLines[i]]), 0, validProteinGroupsRatios[,diagnosisCellLines[i]])
+}
+for (i in 1:length(relapseCellLines)) {
+  validProteinGroupsRatios[,relapseCellLines[i]] <- ifelse(is.na(validProteinGroupsRatios[,relapseCellLines[i]]), 0, validProteinGroupsRatios[,relapseCellLines[i]])
+}
+```
+
+
+## Principal component analysis 
+
+We will now draw a principal component analysis (PCA) plot.
+
+```{r pca}
+
+pcaInput <- data.frame(validProteinGroupsRatios$molm13, 
+                       validProteinGroupsRatios$mv411, 
+                       validProteinGroupsRatios$nb4, 
+                       validProteinGroupsRatios$ociAml3, 
+                       validProteinGroupsRatios$thp1)
+pca <- prcomp(pcaInput)
+pc1 <- pca$rotation[,1]
+pc2 <- pca$rotation[,2]
+totalStd <- sum(pca$sdev)
+contribution1 <- round(100*pca$sdev[1]/totalStd)
+contribution2 <- round(100*pca$sdev[2]/totalStd)
+names <- names(validProteinGroupsRatios)[2:6]
+
+pcaPlot <- ggplot()
+pcaPlot <- pcaPlot + geom_point(aes(x=pc1, y=pc2, col=names))
+pcaPlot <- pcaPlot + xlab(paste("PC1 [", contribution1, "%]", sep=""))
+pcaPlot <- pcaPlot + ylab(paste("PC2 [", contribution2, "%]", sep=""))
+plot(pcaPlot)
+```
+
+
 
 
 ## References

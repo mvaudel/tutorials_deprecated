@@ -178,7 +178,7 @@ missingValuesHistogramPlot <- missingValuesHistogramPlot + geom_bar(aes(x=values
 plot(missingValuesHistogramPlot)
 ```
 
-![](quantitative_proteomics_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](quantitative_proteomics_files/figure-markdown_github/plot_missing_values_histogram-1.png)
 
 Transformation of the ratios
 ----------------------------
@@ -218,14 +218,12 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"ociAml3"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
-ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1)
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
 ratiosDensityPlot <- ratiosDensityPlot + xlim(0, 5)
 plot(ratiosDensityPlot)
 ```
 
-    ## Warning: Removed 512 rows containing non-finite values (stat_density).
-
-![](quantitative_proteomics_files/figure-markdown_github/unnamed-chunk-15-1.png)
+![](quantitative_proteomics_files/figure-markdown_github/ratio_densities-1.png)
 
 Before further processing, we log transform these ratios to restore the symmetry around 1.
 
@@ -237,7 +235,7 @@ validProteinGroupsRatios[,"ociAml3"] <- log2(validProteinGroupsRatios[,"ociAml3"
 validProteinGroupsRatios[,"thp1"] <- log2(validProteinGroupsRatios[,"thp1"])
 ```
 
-The number of protein presenting missing values can be plotted using the code below.
+Now the distributions are centered around 0 and the ratios symmetrically distributed.
 
 ``` r
 categories <- c()
@@ -262,18 +260,186 @@ values <- c(validProteinGroupsRatios[,"molm13"],
             validProteinGroupsRatios[,"ociAml3"],
             validProteinGroupsRatios[,"thp1"])
 ratiosDensityPlot <- ggplot()
-ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1)
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
 plot(ratiosDensityPlot)
 ```
 
-    ## Warning: Removed 478 rows containing non-finite values (stat_density).
-
-![](quantitative_proteomics_files/figure-markdown_github/unnamed-chunk-17-1.png)
+![](quantitative_proteomics_files/figure-markdown_github/ratio_log_densities-1.png)
 
 Normalization of the ratios
 ---------------------------
 
-The ratios provided by MaxQuant are already normalized, but it can be useful to conduct an additional normalization to correct for biases.
+The ratios provided by MaxQuant are already normalized, but it can be useful to conduct an additional normalization to correct for eventual biases. Note: Don't forget to exclude missing values.
+
+``` r
+cellLineMedian <- median(validProteinGroupsRatios[,"molm13"], na.rm = T)
+validProteinGroupsRatios[,"molm13"] <- validProteinGroupsRatios[,"molm13"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"mv411"], na.rm = T)
+validProteinGroupsRatios[,"mv411"] <- validProteinGroupsRatios[,"mv411"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"nb4"], na.rm = T)
+validProteinGroupsRatios[,"nb4"] <- validProteinGroupsRatios[,"nb4"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"ociAml3"], na.rm = T)
+validProteinGroupsRatios[,"ociAml3"] <- validProteinGroupsRatios[,"ociAml3"] - cellLineMedian
+cellLineMedian <- median(validProteinGroupsRatios[,"thp1"], na.rm = T)
+validProteinGroupsRatios[,"thp1"] <- validProteinGroupsRatios[,"thp1"] - cellLineMedian
+```
+
+Removing the median put the center of the distributions at 0.
+
+``` r
+categories <- c()
+categoryCellLine <- character(length(validProteinGroupsRatios[,"molm13"]))
+categoryCellLine[] <- "molm13"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"mv411"]))
+categoryCellLine[] <- "mv411"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"nb4"]))
+categoryCellLine[] <- "nb4"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"ociAml3"]))
+categoryCellLine[] <- "ociAml3"
+categories <- c(categories, categoryCellLine)
+categoryCellLine <- character(length(validProteinGroupsRatios[,"thp1"]))
+categoryCellLine[] <- "thp1"
+categories <- c(categories, categoryCellLine)
+values <- c(validProteinGroupsRatios[,"molm13"],
+            validProteinGroupsRatios[,"mv411"],
+            validProteinGroupsRatios[,"nb4"],
+            validProteinGroupsRatios[,"ociAml3"],
+            validProteinGroupsRatios[,"thp1"])
+ratiosDensityPlot <- ggplot()
+ratiosDensityPlot <- ratiosDensityPlot + geom_density(aes(x=values, col=categories, fill = categories), alpha = 0.1, na.rm=TRUE)
+plot(ratiosDensityPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/ratio_log_densities_normalized-1.png)
+
+t-test
+------
+
+We are going to evaluate the significance of the ratio between the two groups using a t-test. This example does not have sufficient number of replicates to draw any biological conclusion but this is just an example. Below is an example using A0FGR8.
+
+``` r
+valuesDiagnostic <- validProteinGroupsRatios[validProteinGroupsRatios$proteinIDs == "A0FGR8", names(validProteinGroupsRatios) %in% diagnosisCellLines]
+valuesRelapse <- validProteinGroupsRatios[validProteinGroupsRatios$proteinIDs == "A0FGR8", names(validProteinGroupsRatios) %in% relapseCellLines]
+t.test(valuesDiagnostic, valuesRelapse, alternative = "two.sided", paired = F)
+```
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  valuesDiagnostic and valuesRelapse
+    ## t = -0.44869, df = 2.1995, p-value = 0.694
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.5336322  0.4247502
+    ## sample estimates:
+    ## mean of x mean of y 
+    ## 0.1340211 0.1884621
+
+Note that the test run is actually a Welch Two Sample t-test, an extension of the Student t-test more reliable for samples of unequal variances. We create new columns containing the test statistics, as well as the fold change and -10log(p-value).
+
+``` r
+pValues <- c()
+ts <- c()
+fcs <- c()
+pLog <- c()
+for (i in 1:length(validProteinGroupsRatios$proteinIDs)) {
+  valuesDiagnostic <- validProteinGroupsRatios[i, names(validProteinGroupsRatios) %in% diagnosisCellLines]
+  valuesRelapse <- validProteinGroupsRatios[i, names(validProteinGroupsRatios) %in% relapseCellLines]
+  test <- t.test(valuesDiagnostic, valuesRelapse, alternative = "two.sided", paired = F)
+  pValues <- c(pValues, test$p.value)
+  pLog <- c(pLog, -10*log10(test$p.value))
+  ts <- c(ts, test$statistic)
+  medianDiagnostic <- median(as.numeric(valuesDiagnostic), na.rm = T)
+  medianRelapse <- median(as.numeric(valuesRelapse), na.rm = T)
+  fc <- medianRelapse-medianDiagnostic
+  fcs <- c(fcs, fc)
+}
+validProteinGroupsRatios$fc <- fcs
+validProteinGroupsRatios$tTestPValue <- pValues
+validProteinGroupsRatios$tTestPValueLog <- pLog
+validProteinGroupsRatios$tTestStatistic <- ts
+```
+
+QQ Plot
+-------
+
+We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot).
+
+``` r
+expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=1)
+expectedQuantiles <- sort(expectedQuantiles)
+measuredQuantiles <- validProteinGroupsRatios$tTestStatistic
+measuredQuantiles <- sort(measuredQuantiles)
+
+qqPlot <- ggplot()
+qqPlot <- qqPlot + geom_point(aes(x=expectedQuantiles, y=measuredQuantiles), size = 1, col = "blue")
+qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.8)
+qqPlot <- qqPlot + xlab("Expected Quantile")
+qqPlot <- qqPlot + ylab("Observed Quantile")
+plot(qqPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/qq_plot-1.png)
+
+Volcano Plot
+------------
+
+We will now plot the p-value against the fold change between the two conditions.
+
+``` r
+volcanoPlot <- ggplot()
+volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog), size = 1, alpha = 0.5, col = "blue")
+volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]")
+volcanoPlot <- volcanoPlot + ylab("p-value [-10log(p)]")
+plot(volcanoPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
+
+Missing values imputation
+-------------------------
+
+For the following, we are going to impute the missing values and assign them the value 0.
+
+``` r
+for (i in 1:length(diagnosisCellLines)) {
+  validProteinGroupsRatios[,diagnosisCellLines[i]] <- ifelse(is.na(validProteinGroupsRatios[,diagnosisCellLines[i]]), 0, validProteinGroupsRatios[,diagnosisCellLines[i]])
+}
+for (i in 1:length(relapseCellLines)) {
+  validProteinGroupsRatios[,relapseCellLines[i]] <- ifelse(is.na(validProteinGroupsRatios[,relapseCellLines[i]]), 0, validProteinGroupsRatios[,relapseCellLines[i]])
+}
+```
+
+Principal component analysis
+----------------------------
+
+We will now draw a principal component analysis (PCA) plot.
+
+``` r
+pcaInput <- data.frame(validProteinGroupsRatios$molm13, 
+                       validProteinGroupsRatios$mv411, 
+                       validProteinGroupsRatios$nb4, 
+                       validProteinGroupsRatios$ociAml3, 
+                       validProteinGroupsRatios$thp1)
+pca <- prcomp(pcaInput)
+pc1 <- pca$rotation[,1]
+pc2 <- pca$rotation[,2]
+totalStd <- sum(pca$sdev)
+contribution1 <- round(100*pca$sdev[1]/totalStd)
+contribution2 <- round(100*pca$sdev[2]/totalStd)
+names <- names(validProteinGroupsRatios)[2:6]
+
+pcaPlot <- ggplot()
+pcaPlot <- pcaPlot + geom_point(aes(x=pc1, y=pc2, col=names))
+pcaPlot <- pcaPlot + xlab(paste("PC1 [", contribution1, "%]", sep=""))
+pcaPlot <- pcaPlot + ylab(paste("PC2 [", contribution2, "%]", sep=""))
+plot(pcaPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/pca-1.png)
 
 References
 ----------
