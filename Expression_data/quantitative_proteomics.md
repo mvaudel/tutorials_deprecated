@@ -369,14 +369,14 @@ QQ Plot
 We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot).
 
 ``` r
-expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=1)
+expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=5-2)
 expectedQuantiles <- sort(expectedQuantiles)
 measuredQuantiles <- validProteinGroupsRatios$tTestStatistic
 measuredQuantiles <- sort(measuredQuantiles)
 
 qqPlot <- ggplot()
 qqPlot <- qqPlot + geom_point(aes(x=expectedQuantiles, y=measuredQuantiles), size = 1, col = "blue")
-qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.8)
+qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.5, linetype = "dotted")
 qqPlot <- qqPlot + xlab("Expected Quantile")
 qqPlot <- qqPlot + ylab("Observed Quantile")
 plot(qqPlot)
