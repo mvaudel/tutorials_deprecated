@@ -29,7 +29,7 @@ library(ggplot2)
 
 ## File import
 
-The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables. Please download the file [_roteinGroups_5cell-line-mix.txt_](https://github.com/mvaudel/tutorials/blob/master/Expression_data/proteinGroups_5cell-line-mix.txt) to your project folder. It should appear in the _Files_ panel.
+The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables. Please download the file [_proteinGroups_5cell-line-mix.txt_](https://github.com/mvaudel/tutorials/blob/master/Expression_data/proteinGroups_5cell-line-mix.txt) to your project folder. It should appear in the _Files_ panel.
 
 ```{r input}
 proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
@@ -405,9 +405,9 @@ plot(pcaPlot)
 
 ## References
 
-(1) [Vizcaino, J.A. et al., _ProteomeXchange provides globally coordinated proteomics data submission and dissemination_, Nature Biotechnology, 2014](https://www.ncbi.nlm.nih.gov/pubmed/24727771)
-(2) [Martens, L. et al., _PRIDE: the proteomics identifications database_, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
-(3) [Geiger, T. et al., _Super-SILAC mix for quantitative proteomics of human tumor tissue_, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
+(1) [Vizcaino, J.A. _et al._, _ProteomeXchange provides globally coordinated proteomics data submission and dissemination_, Nature Biotechnology, 2014](https://www.ncbi.nlm.nih.gov/pubmed/24727771)
+(2) [Martens, L. _et al._, _PRIDE: the proteomics identifications database_, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
+(3) [Geiger, T. _et al._, _Super-SILAC mix for quantitative proteomics of human tumor tissue_, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
 (4) [Cox, J. and Mann, M, _MaxQuant enables high peptide identification rates, individualized p.p.b. range mass accuracies and proteome-wide protein quantification_, Nature Biotechnology, 2008](https://www.ncbi.nlm.nih.gov/pubmed/19029910)
-(5) [Aasebo, E. et al. Performance of super-SILAC based quantitative proteomics for comparison of
-different acute myeloid leukemia (AML) cell lines, Proteomics, 2014](https://www.ncbi.nlm.nih.gov/pubmed/25044641)
+(5) [Aasebo, E. _et al._, _Performance of super-SILAC based quantitative proteomics for comparison of
+different acute myeloid leukemia (AML) cell lines_, Proteomics, 2014](https://www.ncbi.nlm.nih.gov/pubmed/25044641)
