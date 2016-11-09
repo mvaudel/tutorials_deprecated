@@ -17,8 +17,44 @@ This chapter introduces the basic methods, and is by no means aiming at covering
 
 This tutorial uses [R](https://www.r-project.org), a language that allows the simple manipulation of large datasets. We will use R from the open source [RSudio](www.rstudio.com) environment. Please make sure to have RStudio installed on your computer.
 
-## File Import
+## File import
 
+The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables.
+
+```{r}
+proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
+```
+
+You should see the proteinGroupsInput in your _Environment_ panel. You can get the size of the table using the _length_ function.
+
+```{r}
+nColumns <- length(proteinGroupsInput)
+nLines <- length(proteinGroupsInput$Protein.IDs)
+paste("Number of columns: ", nColumns, ", number of protein groups: ", nLines, sep="")
+```
+
+## Filtering of the protein groups
+
+MaxQuant indicates contaminants, decoy sequences, and proteins only identified by site by a '+' in their columns. You can access the number of every category by using the _table_ function.
+
+```{r}
+nContaminants <- table(proteinGroupsInput$Contaminant)
+paste("Number of Contaminants: ", nContaminants[2], ", Others: ", nContaminants[1], sep="")
+nDecoys <- table(proteinGroupsInput$Reverse)
+paste("Number of decoys: ", nDecoys[2], ", Others: ", nDecoys[1], sep="")
+nOnlyIdentifiedBySite <- table(proteinGroupsInput$Only.identified.by.site)
+paste("Number of only identified by site: ", nOnlyIdentifiedBySite[2], ", Others: ", nOnlyIdentifiedBySite[1], sep="")
+```
+
+Filter these lines and save the result in a new table.
+
+```{r}
+proteinGroups <- proteinGroupsInput[proteinGroupsInput$Contaminant != '+' & proteinGroupsInput$Reverse != '+' & proteinGroupsInput$Only.identified.by.site != '+',]
+
+nLines <- length(proteinGroups$Protein.IDs)
+nFiltered <- length(proteinGroupsInput$Protein.IDs) - length(proteinGroups$Protein.IDs)
+paste("New number of protein groups: ", nLines, ", Number of protein groups removed: ", nFiltered, sep="")
+```
 
 
 

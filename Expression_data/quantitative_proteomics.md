@@ -7,6 +7,67 @@ The dataset used here for illustrative purposes is freely available through the 
 
 This chapter introduces the basic methods, and is by no means aiming at covering all possibilities or present a reference workflow. Please continue exploring the data on your own and critically adapt the interpretation workflow to your experiment - there is no one workflow fits all!
 
+Installation
+------------
+
+This tutorial uses [R](https://www.r-project.org), a language that allows the simple manipulation of large datasets. We will use R from the open source [RSudio](www.rstudio.com) environment. Please make sure to have RStudio installed on your computer.
+
+File import
+-----------
+
+The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables.
+
+``` r
+proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
+```
+
+You should see the proteinGroupsInput in your *Environment* panel. You can get the size of the table using the *length* function.
+
+``` r
+nColumns <- length(proteinGroupsInput)
+nLines <- length(proteinGroupsInput$Protein.IDs)
+paste("Number of columns: ", nColumns, ", number of protein groups: ", nLines, sep="")
+```
+
+    ## [1] "Number of columns: 191, number of protein groups: 3982"
+
+Filtering of the protein groups
+-------------------------------
+
+MaxQuant indicates contaminants, decoy sequences, and proteins only identified by site by a '+' in their columns. You can access the number of every category by using the *table* function.
+
+``` r
+nContaminants <- table(proteinGroupsInput$Contaminant)
+paste("Number of Contaminants: ", nContaminants[2], ", Others: ", nContaminants[1], sep="")
+```
+
+    ## [1] "Number of Contaminants: 104, Others: 3878"
+
+``` r
+nDecoys <- table(proteinGroupsInput$Reverse)
+paste("Number of decoys: ", nDecoys[2], ", Others: ", nDecoys[1], sep="")
+```
+
+    ## [1] "Number of decoys: 76, Others: 3906"
+
+``` r
+nOnlyIdentifiedBySite <- table(proteinGroupsInput$Only.identified.by.site)
+paste("Number of only identified by site: ", nOnlyIdentifiedBySite[2], ", Others: ", nOnlyIdentifiedBySite[1], sep="")
+```
+
+    ## [1] "Number of only identified by site: 109, Others: 3873"
+
+Filter these lines and save the result in a new table.
+
+``` r
+proteinGroups <- proteinGroupsInput[proteinGroupsInput$Contaminant != '+' & proteinGroupsInput$Reverse != '+' & proteinGroupsInput$Only.identified.by.site != '+',]
+nLines <- length(proteinGroups$Protein.IDs)
+nFiltered <- length(proteinGroupsInput$Protein.IDs) - length(proteinGroups$Protein.IDs)
+paste("New number of protein groups: ", nLines, ", Number of protein groups removed: ", nFiltered, sep="")
+```
+
+    ## [1] "New number of protein groups: 3732, Number of protein groups removed: 250"
+
 References
 ----------
 
