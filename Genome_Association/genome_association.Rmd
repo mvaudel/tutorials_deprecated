@@ -13,13 +13,13 @@ In this tutorial, we will introduce basic solutions to manipulate and visualize 
 
 We will need the following libraries: _ggplot2_ and _qqman_. Make sure they are installed in your R session.
 
-```{r install}
+```{r install, message=FALSE}
 install.packages("ggplot2", repos="http://cran.uib.no/")
 install.packages("qqman", repos="http://cran.uib.no/")
 ```
 
 
-```{r libraries}
+```{r libraries, message=FALSE}
 library(ggplot2)
 library(qqman)
 ```
@@ -63,7 +63,9 @@ chisq <- qchisq(1-pValues,1)
 lambda <- median(chisq)/qchisq(0.5,1)
 
 expectedPValues <- -log10(chisq)
+expectedPValues <- sort(expectedPValues)
 observedPValues <- -log10(pValues)
+observedPValues <- sort(observedPValues)
 
 qqPlot <- ggplot()
 qqPlot <- qqPlot + geom_point(aes(x=expectedPValues, y=observedPValues), size = 1, col = "blue")
@@ -76,7 +78,7 @@ paste("lambda: ", lambda, sep = "")
 
 The inspection of associated SNPs on the whole genome is done using a so-called Manhattan plot. The method is readily implemented in the _qqman_ package. Note that its execution can take time depending on the number of markers and the performance of the computer.
 
-```{r manhattan_plot}
+```{r manhattan_plot, message=FALSE}
 manhattan(associationInput)
 ```
 
