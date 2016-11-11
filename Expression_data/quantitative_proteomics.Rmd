@@ -335,7 +335,10 @@ validProteinGroupsRatios$tTestStatistic <- ts
 We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot) where the quantile of the observed t-statistics is plotted against the theoretical quantiles of the Student t distribution.
 
 ```{r qq_plot}
-expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=5-2)
+
+degreesOfFreedom <- 5-2 # 5 cell lines
+
+expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=degreesOfFreedom)
 expectedQuantiles <- sort(expectedQuantiles)
 measuredQuantiles <- validProteinGroupsRatios$tTestStatistic
 measuredQuantiles <- sort(measuredQuantiles)
@@ -347,63 +350,119 @@ qqPlot <- qqPlot + xlab("Expected Quantile") + ylab("Observed Quantile")
 plot(qqPlot)
 ```
 
-It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red values show a 20% deviation from the expected p-values. Note that the measured p-values deviate from the diagonal, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
+It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red dots show a tolerated deviation ratio of from the expected p-values as set in the _ppTolerance_ variable. Note that the measured p-values deviate from the diagonal at low p-values, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
 
 ```{r pp_plot}
-expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=5-2)
+
+ppTolerance <-1.1
+
+expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=degreesOfFreedom)
 expectedPValues <- sort(expectedPValues)
 expectedPValuesLog <- -log10(expectedPValues)
 measuredPValues <- validProteinGroupsRatios$tTestPValue
 measuredPValues <- sort(measuredPValues)
 measuredPValuesLog <- -log10(measuredPValues)
 
-limitLow <- 0.8 * expectedPValues
+limitLow <- expectedPValues/ppTolerance
 limitLow <- -log10(limitLow)
-limitHigh <- 1.2 * expectedPValues
+limitHigh <- ppTolerance * expectedPValues
 limitHigh <- -log10(limitHigh)
 
 ppPlot <- ggplot()
 ppPlot <- ppPlot + geom_point(aes(x=expectedPValuesLog, y=measuredPValuesLog), size = 1, col = "blue")
-ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dotted")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dashed", col="black")
 ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitLow), size = 1, alpha = 0.5, linetype = "dotted", col="red")
 ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitHigh), size = 1, alpha = 0.5, linetype = "dotted", col="red")
 ppPlot <- ppPlot + xlab("Expected p-value [-log10(p)]") + ylab("Observed p-value [-log10(p)]")
 plot(ppPlot)
 ```
 
+We calculate lambda as the ratio of the observed p-value and the expected p-value. A density plot shows that the majority of the p-values are within a `r ppTolerance` deviation ratio.
+
+```{r hist_lambda}
+
+lambda <- measuredPValues/expectedPValues
+lambdaLog <- log(lambda, base = ppTolerance)
+
+lambdaHistogramPlot <- ggplot()
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_density(aes(x=lambdaLog), col="blue", fill = "blue", alpha = 0.1)
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_vline(aes(xintercept=-1), col="red", alpha = 0.8, linetype="dotted")
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_vline(aes(xintercept=1), col="red", alpha = 0.8, linetype="dotted")
+lambdaHistogramPlot <- lambdaHistogramPlot + xlab(paste("Lambda (Observed p-value / Expected p-value) [log", ppTolerance, "]", sep="")) + ylab("Density of proteins")
+plot(lambdaHistogramPlot)
+
+corePopulation <- round(100*length(lambdaLog[abs(lambdaLog) < 1])/length(lambdaLog))/100
+```
+
+`r 100*corePopulation`% of the p-values is contained within the `r ppTolerance` deviation ratio. This percentile will be used in the following as core population.
+
 ## Multiple hypothesis testing
 
-The more we run t-tests, the more chances we have to get a low p-value by chance. For example, when we run the test just one time, we are unlikely to find a p < 1% by chance, whereas if we run the test 100 times, we are likely to find at least one p < 1% by chance. This problem is called the multiple hypothesis testing. We are therefore going to evaluate the number of false discoveries FP by multiplying the probability of getting this p-value by chance by the number of times we run the test, i.e. the number of proteins: FP = n * p. By dividing the number of false positives FP by the number of proteins, we obtain a false discovery rate, FDR, the share of proteins incorrectly marked as differentially expressed between the cell lines.
+The more we run t-tests, the more chances we have to get a low p-value by chance. For example, when we run the test just one time, we are unlikely to find a p < 1% by chance, whereas if we run the test 100 times, we are likely to find at least one p < 1% by chance. This problem is called the multiple hypothesis testing. Correction for multiple hypothesis testing approaches were pioneered by Benjamini and Hochberg [(6)](#references). Below is an attempt at illustrating this problem intuitively. 
 
-In the following, we estimate the FDR at every p-value and plot it against the (log transformed) p-value. Note that the density of the t-distribution is used here instead of the p-value, it can be changed to use the p-value according to your preferences.
+In the following we derive the number of randomly occurring low p-values, false discoveries (FP), from the t-distribution calibrated to the core population. The obtained distribution of false positives is displayed in red. Note that the density of the t-distribution inferred from the core population is used here instead of the p-value, the code can be adapted to use the p-value according to your preferences.
+
+```{r core_population}
+
+tScoreLimits <- qt(c(0.5-corePopulation/2, 0.5+corePopulation/2), df = degreesOfFreedom)
+tPopulation <- length(validProteinGroupsRatios$tTestStatistic[validProteinGroupsRatios$tTestStatistic > tScoreLimits[1] & validProteinGroupsRatios$tTestStatistic < tScoreLimits[2]])/corePopulation
+
+nBinsInOne <- 5
+binSize <- 1/nBinsInOne
+minStatistic <- floor(min(validProteinGroupsRatios$tTestStatistic))
+maxStatistic <- ceiling(max(validProteinGroupsRatios$tTestStatistic))
+
+quantilesStatistic <- quantile(validProteinGroupsRatios$tTestStatistic, c(0.5-corePopulation/2, 0.5, 0.5+corePopulation/2), na.rm = T, names = F)
+medianStatistic <- quantilesStatistic[2]
+interQuantilesStatistic <- quantilesStatistic[3] - quantilesStatistic[1]
+xDistribution <- minStatistic + (binSize * (1:(nBinsInOne * (maxStatistic - minStatistic))))
+yDistributionT <- dt(x = xDistribution, df = degreesOfFreedom)
+scale <- tPopulation / nBinsInOne
+yDistributionTNorm <- scale * yDistributionT
+
+tStatisticHistogramPlot <- ggplot()
+tStatisticHistogramPlot <- tStatisticHistogramPlot + geom_histogram(aes(x=validProteinGroupsRatios$tTestStatistic), col="blue", fill = "blue", alpha = 0.1, binwidth = binSize)
+tStatisticHistogramPlot <- tStatisticHistogramPlot + geom_line(aes(x=xDistribution, yDistributionTNorm2), col="red", alpha = 0.8)
+tStatisticHistogramPlot <- tStatisticHistogramPlot + xlab("t-statistic") + ylab("Number of proteins")
+plot(tStatisticHistogramPlot)
+```
+
+By dividing the estimated number of false positives by the number of proteins at a given t-statistic at increasing p-value, we obtain a false discovery rate, _FDR_, the share of proteins incorrectly marked as differentially expressed between the cell lines. In the following, we estimate the FDR at every p-value and plot it against the (log transformed) p-value.
+
+Since the number of hits can fluctuate around the estimated number of false positives, the FDR evolves in steps that can go over 100%. The lowers FDR achievable at a given p-value is therefore used instead. This is termed a _q-value_.
 
 ```{r fdr_plot}
 
-measuredPValues <- validProteinGroupsRatios$tTestPValue
-measuredPValuesLog <- -log10(measuredPValues)
-measuredStatistics <- validProteinGroupsRatios$tTestStatistic
-measuredP <- dt(measuredStatistics, df =5-2)
-nfp <- c()
 fdr <- c()
-totalFP <- 0
 index <- 1
-for (i in order(measuredP)) {
-  totalFP <- totalFP + measuredP[i]
-  nfp <- c(nfp, totalFP)
-  fdrAtI <- totalFP / index
+for (i in order(validProteinGroupsRatios$tTestPValue)) {
+  tStatistic <- validProteinGroupsRatios$tTestStatistic[i]
+  nFpAtI <- tPopulation * 2 * pt(tStatistic, df = degreesOfFreedom, lower.tail = tStatistic < 0)
+  fdrAtI <- nFpAtI / index
   fdr[i] <- fdrAtI
   index <- index + 1
 }
 validProteinGroupsRatios$fdr <- fdr
 fdrPercent <- 100 * fdr
 
-qqPlot <- ggplot()
-qqPlot <- qqPlot + geom_point(aes(x=measuredStatistics, y=fdrPercent), alpha=0.5, size = 1, col = "blue")
-qqPlot <- qqPlot + xlab("Observed t-statistic") + ylab("FDR (%)")
-plot(qqPlot)
-```
+qValue <- c()
+lastLowesQValue <- 1
+for (i in order(validProteinGroupsRatios$tTestPValue, decreasing = T)) {
+  fdrAtI <- validProteinGroupsRatios$fdr[i]
+  if (fdrAtI < lastLowesQValue) {
+    lastLowesQValue <- fdrAtI
+  }
+  qValue[i] <- lastLowesQValue
+}
+validProteinGroupsRatios$qValue <- qValue
+qValuePercent <- 100 * qValue
 
-Such approaches were pioneered by Benjamini and Hochberg [(6)](#references). Since then many approaches were developed to improve the FDR caluclation.
+fdrPlot <- ggplot()
+fdrPlot <- fdrPlot + geom_point(aes(x=validProteinGroupsRatios$tTestPValueLog, y=fdrPercent), alpha=0.5, size = 1, col = "blue")
+fdrPlot <- fdrPlot + geom_line(aes(x=validProteinGroupsRatios$tTestPValueLog, y=qValuePercent), col = "red")
+fdrPlot <- fdrPlot + xlab("p-value") + ylab("FDR (%)")
+plot(fdrPlot)
+```
 
 
 ## Volcano Plot
@@ -435,7 +494,7 @@ With the hypothesis that false positives introduced by multiple hypothesis testi
 
 ```{r fdr_correction_plot}
 scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
-scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =5-2)
+scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
 tNormScore <- scoreNorm * scoreT
 validProteinGroupsRatios$tNormScore <- tNormScore
 sumScore <- sum(tNormScore)
@@ -452,16 +511,17 @@ for (i in order(validProteinGroupsRatios$tNormScore)) {
   correctedFdr[i] <- scoreSums[i] / index
   index <- index + 1
 }
+validProteinGroupsRatios$correctedFdr <- correctedFdr
 correctedFdrPercent <- 100 * correctedFdr
 
 regulationConfidence <- ifelse(correctedFdrPercent <= 5, "Middle", "Low")
 regulationConfidence <- ifelse(correctedFdrPercent <= 1, "High", regulationConfidence)
 
-qqPlot <- ggplot()
-qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=fdrPercent), size = 1, alpha=0.5, col = "blue")
-qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent, col=regulationConfidence), size = 1, alpha=0.5)
-qqPlot <- qqPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
-plot(qqPlot)
+fdrPlot <- ggplot()
+fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=fdrPercent), size = 1, alpha=0.5, col = "blue")
+fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent, col=regulationConfidence), size = 1, alpha=0.5)
+fdrPlot <- fdrPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
+plot(fdrPlot)
 ```
 
 In the following, we plot the p-value against the fold change between the two conditions.

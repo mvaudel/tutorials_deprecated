@@ -393,7 +393,9 @@ QQ Plot
 We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot) where the quantile of the observed t-statistics is plotted against the theoretical quantiles of the Student t distribution.
 
 ``` r
-expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=5-2)
+degreesOfFreedom <- 5-2 # 5 cell lines
+
+expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=degreesOfFreedom)
 expectedQuantiles <- sort(expectedQuantiles)
 measuredQuantiles <- validProteinGroupsRatios$tTestStatistic
 measuredQuantiles <- sort(measuredQuantiles)
@@ -407,24 +409,26 @@ plot(qqPlot)
 
 ![](quantitative_proteomics_files/figure-markdown_github/qq_plot-1.png)
 
-It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red values show a 20% deviation from the expected p-values. Note that the measured p-values deviate from the diagonal, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
+It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red dots show a tolerated deviation ratio of from the expected p-values as set in the *ppTolerance* variable. Note that the measured p-values deviate from the diagonal at low p-values, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
 
 ``` r
-expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=5-2)
+ppTolerance <-1.1
+
+expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=degreesOfFreedom)
 expectedPValues <- sort(expectedPValues)
 expectedPValuesLog <- -log10(expectedPValues)
 measuredPValues <- validProteinGroupsRatios$tTestPValue
 measuredPValues <- sort(measuredPValues)
 measuredPValuesLog <- -log10(measuredPValues)
 
-limitLow <- 0.8 * expectedPValues
+limitLow <- expectedPValues/ppTolerance
 limitLow <- -log10(limitLow)
-limitHigh <- 1.2 * expectedPValues
+limitHigh <- ppTolerance * expectedPValues
 limitHigh <- -log10(limitHigh)
 
 ppPlot <- ggplot()
 ppPlot <- ppPlot + geom_point(aes(x=expectedPValuesLog, y=measuredPValuesLog), size = 1, col = "blue")
-ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dotted")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dashed", col="black")
 ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitLow), size = 1, alpha = 0.5, linetype = "dotted", col="red")
 ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitHigh), size = 1, alpha = 0.5, linetype = "dotted", col="red")
 ppPlot <- ppPlot + xlab("Expected p-value [-log10(p)]") + ylab("Observed p-value [-log10(p)]")
@@ -432,6 +436,28 @@ plot(ppPlot)
 ```
 
 ![](quantitative_proteomics_files/figure-markdown_github/pp_plot-1.png)
+
+We calculate lambda as the ratio of the observed p-value and the expected p-value. A density plot shows that the majority of the p-values are within a 1.1 deviation ratio.
+
+``` r
+lambda <- measuredPValues/expectedPValues
+lambdaLog <- log(lambda, base = ppTolerance)
+
+lambdaHistogramPlot <- ggplot()
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_density(aes(x=lambdaLog), col="blue", fill = "blue", alpha = 0.1)
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_vline(aes(xintercept=-1), col="red", alpha = 0.8, linetype="dotted")
+lambdaHistogramPlot <- lambdaHistogramPlot + geom_vline(aes(xintercept=1), col="red", alpha = 0.8, linetype="dotted")
+lambdaHistogramPlot <- lambdaHistogramPlot + xlab(paste("Lambda (Observed p-value / Expected p-value) [log", ppTolerance, "]", sep="")) + ylab("Density of proteins")
+plot(lambdaHistogramPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/hist_lambda-1.png)
+
+``` r
+corePopulation <- round(100*length(lambdaLog[abs(lambdaLog) <= 1])/length(lambdaLog))/100
+```
+
+76% of the p-values is contained within the 1.1 deviation ratio. This percentile will be used in the following as core population.
 
 Multiple hypothesis testing
 ---------------------------
@@ -442,26 +468,26 @@ In the following, we estimate the FDR at every p-value and plot it against the (
 
 ``` r
 measuredPValues <- validProteinGroupsRatios$tTestPValue
-measuredPValues <- sort(measuredPValues)
 measuredPValuesLog <- -log10(measuredPValues)
 measuredStatistics <- validProteinGroupsRatios$tTestStatistic
-measuredP <- dt(measuredStatistics, df =5-2)
-measuredP <- sort(measuredP)
+measuredP <- dt(measuredStatistics, df =degreesOfFreedom)
 nfp <- c()
 fdr <- c()
-nfpAtI <- 0
-for (i in 1:length(measuredP)) {
-  nfpAtI <- nfpAtI + measuredP[i]
-  nfp <- c(nfp, nfpAtI)
-  fdrAtI <- nfpAtI / length(measuredP)
-  fdr <- c(fdr, fdrAtI)
+totalFP <- 0
+index <- 1
+for (i in order(measuredP)) {
+  totalFP <- totalFP + measuredP[i]
+  nfp <- c(nfp, totalFP)
+  fdrAtI <- totalFP / index
+  fdr[i] <- fdrAtI
+  index <- index + 1
 }
-
+validProteinGroupsRatios$fdr <- fdr
 fdrPercent <- 100 * fdr
 
 qqPlot <- ggplot()
-qqPlot <- qqPlot + geom_point(aes(x=measuredPValuesLog, y=fdrPercent), size = 1, col = "blue")
-qqPlot <- qqPlot + xlab("Observed p-value [-log10(p)]") + ylab("FDR (%)")
+qqPlot <- qqPlot + geom_point(aes(x=measuredStatistics, y=fdrPercent), alpha=0.5, size = 1, col = "blue")
+qqPlot <- qqPlot + xlab("Observed t-statistic") + ylab("FDR (%)")
 plot(qqPlot)
 ```
 
@@ -499,11 +525,45 @@ plot(fcHistogramPlot)
 
 With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis for the FDR estimation.
 
+``` r
+scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
+scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
+tNormScore <- scoreNorm * scoreT
+validProteinGroupsRatios$tNormScore <- tNormScore
+sumScore <- sum(tNormScore)
+scoreSums <- c()
+currentSum <- 0
+for (i in order(validProteinGroupsRatios$tNormScore)) {
+  currentSum <- currentSum + tNormScore[i]
+  scoreSums[i] <- currentSum
+}
+scoreSums <- scoreSums / currentSum * totalFP
+correctedFdr <- c()
+index <- 1
+for (i in order(validProteinGroupsRatios$tNormScore)) {
+  correctedFdr[i] <- scoreSums[i] / index
+  index <- index + 1
+}
+validProteinGroupsRatios$correctedFdr <- correctedFdr
+correctedFdrPercent <- 100 * correctedFdr
+
+regulationConfidence <- ifelse(correctedFdrPercent <= 5, "Middle", "Low")
+regulationConfidence <- ifelse(correctedFdrPercent <= 1, "High", regulationConfidence)
+
+qqPlot <- ggplot()
+qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=fdrPercent), size = 1, alpha=0.5, col = "blue")
+qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent, col=regulationConfidence), size = 1, alpha=0.5)
+qqPlot <- qqPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
+plot(qqPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_plot-1.png)
+
 In the following, we plot the p-value against the fold change between the two conditions.
 
 ``` r
 volcanoPlot <- ggplot()
-volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog), size = 1, alpha = 0.5, col = "blue")
+volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog, col=regulationConfidence), size = 1, alpha = 0.5)
 volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
 plot(volcanoPlot)
 ```
