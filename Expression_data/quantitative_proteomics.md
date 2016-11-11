@@ -22,10 +22,12 @@ We are going to use the [ggplot2](http://ggplot2.org/) library. If you did not i
 library(ggplot2)
 ```
 
+    ## Warning: package 'ggplot2' was built under R version 3.2.5
+
 File import
 -----------
 
-The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables. Please download the file [*roteinGroups\_5cell-line-mix.txt*](https://github.com/mvaudel/tutorials/blob/master/Expression_data/proteinGroups_5cell-line-mix.txt) to your project folder. It should appear in the *Files* panel.
+The MaxQuant report files are tab separated text files that can readily be imported in R as data frame. A data frame allows the convenient manipulation of large tables. Please download the file [*proteinGroups\_5cell-line-mix.txt*](https://github.com/mvaudel/tutorials/blob/master/Expression_data/proteinGroups_5cell-line-mix.txt) to your project folder. It should appear in the *Files* panel.
 
 ``` r
 proteinGroupsInput <- read.table(file = "proteinGroups_5cell-line-mix.txt", header = T, stringsAsFactors = F, sep = "\t")
@@ -113,12 +115,10 @@ The ratios can be plotted against each others for different cell lines in a scat
 cellLineX <- "mv411"
 cellLineY <- "ociAml3"
 scatterPlot <- ggplot()
-scatterPlot <- scatterPlot + geom_point(aes(x=proteinGroupsRatios[,cellLineX], y=proteinGroupsRatios[,cellLineY]), alpha=0.2, col="blue", size=1)
+scatterPlot <- scatterPlot + geom_point(aes(x=proteinGroupsRatios[,cellLineX], y=proteinGroupsRatios[,cellLineY]), alpha=0.2, col="blue", size=1, na.rm = T)
 scatterPlot <- scatterPlot + xlab(cellLineX) + ylab(cellLineY)
 plot(scatterPlot)
 ```
-
-    ## Warning: Removed 1578 rows containing missing values (geom_point).
 
 ![](quantitative_proteomics_files/figure-markdown_github/scatter_plot-1.png)
 
@@ -195,7 +195,7 @@ values <- c(nMissingDiagnosis, nMissingRelapse)
 
 missingValuesHistogramPlot <- ggplot()
 missingValuesHistogramPlot <- missingValuesHistogramPlot + geom_bar(aes(x=values, fill=categories), position = "dodge")
-missingValuesHistogramPlot <- missingValuesHistogramPlot + xlab("Number of missing values") + ylab("Density of proteins")
+missingValuesHistogramPlot <- missingValuesHistogramPlot + xlab("Number of missing values") + ylab("Number of proteins")
 plot(missingValuesHistogramPlot)
 ```
 
@@ -390,7 +390,7 @@ validProteinGroupsRatios$tTestStatistic <- ts
 QQ Plot
 -------
 
-We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot).
+We will now see whether the t-test statistics actually follow a t-distribution. This is achieved by drawing a quantile-quantile plot (qq-plot) where the quantile of the observed t-statistics is plotted against the theoretical quantiles of the Student t distribution.
 
 ``` r
 expectedQuantiles <- rt(length(validProteinGroupsRatios$tTestStatistic), df=5-2)
@@ -400,17 +400,106 @@ measuredQuantiles <- sort(measuredQuantiles)
 
 qqPlot <- ggplot()
 qqPlot <- qqPlot + geom_point(aes(x=expectedQuantiles, y=measuredQuantiles), size = 1, col = "blue")
-qqPlot <- qqPlot + geom_line(aes(x=measuredQuantiles, y=measuredQuantiles), size = 1, alpha = 0.5, linetype = "dotted")
+qqPlot <- qqPlot + geom_line(aes(x=expectedQuantiles, y=expectedQuantiles), size = 1, alpha = 0.5, linetype = "dotted")
 qqPlot <- qqPlot + xlab("Expected Quantile") + ylab("Observed Quantile")
 plot(qqPlot)
 ```
 
 ![](quantitative_proteomics_files/figure-markdown_github/qq_plot-1.png)
 
+It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red values show a 20% deviation from the expected p-values. Note that the measured p-values deviate from the diagonal, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
+
+``` r
+expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=5-2)
+expectedPValues <- sort(expectedPValues)
+expectedPValuesLog <- -log10(expectedPValues)
+measuredPValues <- validProteinGroupsRatios$tTestPValue
+measuredPValues <- sort(measuredPValues)
+measuredPValuesLog <- -log10(measuredPValues)
+
+limitLow <- 0.8 * expectedPValues
+limitLow <- -log10(limitLow)
+limitHigh <- 1.2 * expectedPValues
+limitHigh <- -log10(limitHigh)
+
+ppPlot <- ggplot()
+ppPlot <- ppPlot + geom_point(aes(x=expectedPValuesLog, y=measuredPValuesLog), size = 1, col = "blue")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dotted")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitLow), size = 1, alpha = 0.5, linetype = "dotted", col="red")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitHigh), size = 1, alpha = 0.5, linetype = "dotted", col="red")
+ppPlot <- ppPlot + xlab("Expected p-value [-log10(p)]") + ylab("Observed p-value [-log10(p)]")
+plot(ppPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/pp_plot-1.png)
+
+Multiple hypothesis testing
+---------------------------
+
+The more we run t-tests, the more chances we have to get a low p-value by chance. For example, when we run the test just one time, we are unlikely to find a p &lt; 1% by chance, whereas if we run the test 100 times, we are likely to find at least one p &lt; 1% by chance. This problem is called the multiple hypothesis testing. We are therefore going to evaluate the number of false discoveries FP by multiplying the probability of getting this p-value by chance by the number of times we run the test, i.e. the number of proteins: FP = n \* p. By dividing the number of false positives FP by the number of proteins, we obtain a false discovery rate, FDR, the share of proteins incorrectly marked as differentially expressed between the cell lines.
+
+In the following, we estimate the FDR at every p-value and plot it against the (log transformed) p-value. Note that the density of the t-distribution is used here instead of the p-value, it can be changed to use the p-value according to your preferences.
+
+``` r
+measuredPValues <- validProteinGroupsRatios$tTestPValue
+measuredPValues <- sort(measuredPValues)
+measuredPValuesLog <- -log10(measuredPValues)
+measuredStatistics <- validProteinGroupsRatios$tTestStatistic
+measuredP <- dt(measuredStatistics, df =5-2)
+measuredP <- sort(measuredP)
+nfp <- c()
+fdr <- c()
+nfpAtI <- 0
+for (i in 1:length(measuredP)) {
+  nfpAtI <- nfpAtI + measuredP[i]
+  nfp <- c(nfp, nfpAtI)
+  fdrAtI <- nfpAtI / length(measuredP)
+  fdr <- c(fdr, fdrAtI)
+}
+
+fdrPercent <- 100 * fdr
+
+qqPlot <- ggplot()
+qqPlot <- qqPlot + geom_point(aes(x=measuredPValuesLog, y=fdrPercent), size = 1, col = "blue")
+qqPlot <- qqPlot + xlab("Observed p-value [-log10(p)]") + ylab("FDR (%)")
+plot(qqPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/fdr_plot-1.png)
+
+Such approaches were pioneered by Benjamini and Hochberg [(6)](#references). Since then many approaches were developed to improve the FDR caluclation.
+
 Volcano Plot
 ------------
 
-We will now plot the p-value against the fold change between the two conditions.
+The following code shows the histogram of fold changes between diagnostic and relapse for all proteins, as estimated in the t-test section by the difference between the median value of relapse cell lines compaired to the median value of diagnostic cell lines. The red line shows a normal distribution with mean and standard deviation calibrated on the median and the 34th percentiles around the median, respectively.
+
+``` r
+nBinsInOne <- 10
+binSize <- 1/nBinsInOne
+minFC <- floor(min(validProteinGroupsRatios$fc))
+maxFC <- ceiling(max(validProteinGroupsRatios$fc))
+
+quantilesFC <- quantile(validProteinGroupsRatios$fc, c(0.16, 0.5, 0.84), na.rm = T, names = F)
+medianFC <- quantilesFC[2]
+interQuantilesFC <- quantilesFC[3] - quantilesFC[1]
+xDistribution <- minFC + (binSize * (1:(nBinsInOne * (maxFC - minFC))))
+yDistribution <- dnorm(x = xDistribution, mean = medianFC, sd = interQuantilesFC/2)
+scale <- length(validProteinGroupsRatios$fc)/nBinsInOne
+yDistributionNorm <- scale * yDistribution
+
+fcHistogramPlot <- ggplot()
+fcHistogramPlot <- fcHistogramPlot + geom_histogram(aes(x=validProteinGroupsRatios$fc), col="blue", fill = "blue", alpha = 0.1, binwidth = binSize)
+fcHistogramPlot <- fcHistogramPlot + geom_line(aes(x=xDistribution, yDistributionNorm), col="red", alpha = 0.8)
+fcHistogramPlot <- fcHistogramPlot + xlab("Fold Change") + ylab("Number of proteins")
+plot(fcHistogramPlot)
+```
+
+![](quantitative_proteomics_files/figure-markdown_github/fc_histogram-1.png)
+
+With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis for the FDR estimation.
+
+In the following, we plot the p-value against the fold change between the two conditions.
 
 ``` r
 volcanoPlot <- ggplot()
@@ -466,8 +555,9 @@ plot(pcaPlot)
 References
 ----------
 
-1.  [Vizcaino, J.A. et al., *ProteomeXchange provides globally coordinated proteomics data submission and dissemination*, Nature Biotechnology, 2014](https://www.ncbi.nlm.nih.gov/pubmed/24727771)
-2.  [Martens, L. et al., *PRIDE: the proteomics identifications database*, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
-3.  [Geiger, T. et al., *Super-SILAC mix for quantitative proteomics of human tumor tissue*, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
+1.  [Vizcaino, J.A. *et al.*, *ProteomeXchange provides globally coordinated proteomics data submission and dissemination*, Nature Biotechnology, 2014](https://www.ncbi.nlm.nih.gov/pubmed/24727771)
+2.  [Martens, L. *et al.*, *PRIDE: the proteomics identifications database*, Proteomics, 2005](https://www.ncbi.nlm.nih.gov/pubmed/16041671)
+3.  [Geiger, T. *et al.*, *Super-SILAC mix for quantitative proteomics of human tumor tissue*, Nature Methods, 2010](https://www.ncbi.nlm.nih.gov/pubmed/20364148)
 4.  [Cox, J. and Mann, M, *MaxQuant enables high peptide identification rates, individualized p.p.b. range mass accuracies and proteome-wide protein quantification*, Nature Biotechnology, 2008](https://www.ncbi.nlm.nih.gov/pubmed/19029910)
-5.  [Aasebo, E. et al. Performance of super-SILAC based quantitative proteomics for comparison of different acute myeloid leukemia (AML) cell lines, Proteomics, 2014](https://www.ncbi.nlm.nih.gov/pubmed/25044641)
+5.  [Aasebo, E. *et al.*, *Performance of super-SILAC based quantitative proteomics for comparison of different acute myeloid leukemia (AML) cell lines*, Proteomics, 2014](https://www.ncbi.nlm.nih.gov/pubmed/25044641)
+6.  [Benjamini, Y. and Hochberg, Y., *Controlling the false discovery rate: a practical and powerful approach to multiple testing*, Journal of the Royal Statistical Society, 1995](http://www.math.tau.ac.il/~ybenja/MyPapers/benjamini_hochberg1995.pdf)

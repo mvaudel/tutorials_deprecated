@@ -99,7 +99,7 @@ The ratios can be plotted against each others for different cell lines in a scat
 cellLineX <- "mv411"
 cellLineY <- "ociAml3"
 scatterPlot <- ggplot()
-scatterPlot <- scatterPlot + geom_point(aes(x=proteinGroupsRatios[,cellLineX], y=proteinGroupsRatios[,cellLineY]), alpha=0.2, col="blue", size=1)
+scatterPlot <- scatterPlot + geom_point(aes(x=proteinGroupsRatios[,cellLineX], y=proteinGroupsRatios[,cellLineY]), alpha=0.2, col="blue", size=1, na.rm = T)
 scatterPlot <- scatterPlot + xlab(cellLineX) + ylab(cellLineY)
 plot(scatterPlot)
 ```
@@ -349,7 +349,7 @@ plot(qqPlot)
 
 It is possible to make the same plot for the observed and expected p-values, based on these quantiles. The red values show a 20% deviation from the expected p-values. Note that the measured p-values deviate from the diagonal, indicating that our dataset does not fully satisfy the hypotheses of the t-test.
 
-```{r qq_plot}
+```{r pp_plot}
 expectedPValues <- pt(expectedQuantiles, lower.tail = expectedQuantiles < 0, df=5-2)
 expectedPValues <- sort(expectedPValues)
 expectedPValuesLog <- -log10(expectedPValues)
@@ -362,13 +362,13 @@ limitLow <- -log10(limitLow)
 limitHigh <- 1.2 * expectedPValues
 limitHigh <- -log10(limitHigh)
 
-qqPlot <- ggplot()
-qqPlot <- qqPlot + geom_point(aes(x=expectedPValuesLog, y=measuredPValuesLog), size = 1, col = "blue")
-qqPlot <- qqPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dotted")
-qqPlot <- qqPlot + geom_line(aes(x=expectedPValuesLog, y=limitLow), size = 1, alpha = 0.5, linetype = "dotted", col="red")
-qqPlot <- qqPlot + geom_line(aes(x=expectedPValuesLog, y=limitHigh), size = 1, alpha = 0.5, linetype = "dotted", col="red")
-qqPlot <- qqPlot + xlab("Expected p-value [-log10(p)]") + ylab("Observed p-value [-log10(p)]")
-plot(qqPlot)
+ppPlot <- ggplot()
+ppPlot <- ppPlot + geom_point(aes(x=expectedPValuesLog, y=measuredPValuesLog), size = 1, col = "blue")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=expectedPValuesLog), size = 1, alpha = 0.5, linetype = "dotted")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitLow), size = 1, alpha = 0.5, linetype = "dotted", col="red")
+ppPlot <- ppPlot + geom_line(aes(x=expectedPValuesLog, y=limitHigh), size = 1, alpha = 0.5, linetype = "dotted", col="red")
+ppPlot <- ppPlot + xlab("Expected p-value [-log10(p)]") + ylab("Observed p-value [-log10(p)]")
+plot(ppPlot)
 ```
 
 ## Multiple hypothesis testing
@@ -380,26 +380,26 @@ In the following, we estimate the FDR at every p-value and plot it against the (
 ```{r fdr_plot}
 
 measuredPValues <- validProteinGroupsRatios$tTestPValue
-measuredPValues <- sort(measuredPValues)
 measuredPValuesLog <- -log10(measuredPValues)
 measuredStatistics <- validProteinGroupsRatios$tTestStatistic
 measuredP <- dt(measuredStatistics, df =5-2)
-sort(measuredP)
 nfp <- c()
 fdr <- c()
-nfpAtI <- 0
-for (i in 1:length(measuredP)) {
-  nfpAtI <- nfpAtI + measuredP[i]
-  nfp <- c(nfp, nfpAtI)
-  fdrAtI <- nfpAtI / length(measuredP)
-  fdr <- c(fdr, fdrAtI)
+totalFP <- 0
+index <- 1
+for (i in order(measuredP)) {
+  totalFP <- totalFP + measuredP[i]
+  nfp <- c(nfp, totalFP)
+  fdrAtI <- totalFP / index
+  fdr[i] <- fdrAtI
+  index <- index + 1
 }
-
+validProteinGroupsRatios$fdr <- fdr
 fdrPercent <- 100 * fdr
 
 qqPlot <- ggplot()
-qqPlot <- qqPlot + geom_point(aes(x=measuredPValuesLog, y=fdrPercent), size = 1, col = "blue")
-qqPlot <- qqPlot + xlab("Observed p-value [-log10(p)]") + ylab("FDR (%)")
+qqPlot <- qqPlot + geom_point(aes(x=measuredStatistics, y=fdrPercent), alpha=0.5, size = 1, col = "blue")
+qqPlot <- qqPlot + xlab("Observed t-statistic") + ylab("FDR (%)")
 plot(qqPlot)
 ```
 
@@ -410,7 +410,7 @@ Such approaches were pioneered by Benjamini and Hochberg [(6)](#references). Sin
 
 The following code shows the histogram of fold changes between diagnostic and relapse for all proteins, as estimated in the t-test section by the difference between the median value of relapse cell lines compaired to the median value of diagnostic cell lines. The red line shows a normal distribution with mean and standard deviation calibrated on the median and the 34th percentiles around the median, respectively.
 
-```{r ratio_densities}
+```{r fc_histogram}
 nBinsInOne <- 10
 binSize <- 1/nBinsInOne
 minFC <- floor(min(validProteinGroupsRatios$fc))
@@ -433,11 +433,42 @@ plot(fcHistogramPlot)
 
 With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis for the FDR estimation. 
 
+```{r fdr_correction_plot}
+scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
+scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =5-2)
+tNormScore <- scoreNorm * scoreT
+validProteinGroupsRatios$tNormScore <- tNormScore
+sumScore <- sum(tNormScore)
+scoreSums <- c()
+currentSum <- 0
+for (i in order(validProteinGroupsRatios$tNormScore)) {
+  currentSum <- currentSum + tNormScore[i]
+  scoreSums[i] <- currentSum
+}
+scoreSums <- scoreSums / currentSum * totalFP
+correctedFdr <- c()
+index <- 1
+for (i in order(validProteinGroupsRatios$tNormScore)) {
+  correctedFdr[i] <- scoreSums[i] / index
+  index <- index + 1
+}
+correctedFdrPercent <- 100 * correctedFdr
+
+regulationConfidence <- ifelse(correctedFdrPercent <= 5, "Middle", "Low")
+regulationConfidence <- ifelse(correctedFdrPercent <= 1, "High", regulationConfidence)
+
+qqPlot <- ggplot()
+qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=fdrPercent), size = 1, alpha=0.5, col = "blue")
+qqPlot <- qqPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent, col=regulationConfidence), size = 1, alpha=0.5)
+qqPlot <- qqPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
+plot(qqPlot)
+```
+
 In the following, we plot the p-value against the fold change between the two conditions.
 
 ```{r volcano_plot}
 volcanoPlot <- ggplot()
-volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog), size = 1, alpha = 0.5, col = "blue")
+volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog, col=regulationConfidence), size = 1, alpha = 0.5)
 volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
 plot(volcanoPlot)
 ```
