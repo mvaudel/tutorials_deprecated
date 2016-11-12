@@ -575,19 +575,19 @@ volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)
 plot(volcanoPlot)
 ```
 
-Note that this can easily be combined with an arbirary p-value threshold, e.g. 0.05.
+Note that  the function used to score the protein, _tNormScore <- scoreNorm * scoreT_, can be easily extended. For example, it can be combined with an arbirary p-value threshold, e.g. 0.05.
 
 ```{r setPLimit}
 pLimit <- 0.05
 ```
 
-For example, in the section below, we conduct the same analysis for proteins with p-value < 0.05.
+For example, in the section below, we conduct the same analysis but use the weighting only for proteins with p-value < 0.05.
 
 ```{r fdr_correction_0.05}
 
 scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
 scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
-tNormScore05 <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, scoreNorm * scoreT, 1)
+tNormScore05 <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, scoreNorm * scoreT, scoreT)
 validProteinGroupsRatios$tNormScore05 <- tNormScore05
 scoreSums05 <- c()
 currentSum <- 0

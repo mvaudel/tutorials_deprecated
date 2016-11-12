@@ -457,7 +457,7 @@ plot(lambdaHistogramPlot)
 corePopulation <- round(100*length(lambdaLog[abs(lambdaLog) < 1])/length(lambdaLog))/100
 ```
 
-67% of the p-values is contained within the 1.1 deviation ratio. This percentile will be used in the following as core population.
+76% of the p-values is contained within the 1.1 deviation ratio. This percentile will be used in the following as core population.
 
 Multiple hypothesis testing
 ---------------------------
@@ -545,7 +545,7 @@ plot(fdrPlot)
 
 ![](quantitative_proteomics_files/figure-markdown_github/fdr_plot-1.png)
 
-In this example, 10% FDR is achieved at p-value 0.074 and 5% FDR at p-value 0.027, as indicated by the orange and green lines, respectively. the lowest q-value is 2.42%.
+In this example, 10% FDR is achieved at p-value 0.074 and 5% FDR at p-value 0.027, as indicated by the orange and green lines, respectively. the lowest q-value is 2.5%. The ability to differentiate proteins at a given FDR depends on the score metric used to score them. Here the p-value alone does not allow reaching an FDR of 1%.
 
 Independent weighting hypothesis
 --------------------------------
@@ -650,18 +650,18 @@ plot(volcanoPlot)
 
 ![](quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
 
-Note that this can easily be combined with an arbirary p-value threshold, e.g. 0.05.
+Note that the function used to score the protein, *tNormScore &lt;- scoreNorm \* scoreT*, can be easily extended. For example, it can be combined with an arbirary p-value threshold, e.g. 0.05.
 
 ``` r
 pLimit <- 0.05
 ```
 
-For example, in the section below, we conduct the same analysis for proteins with p-value &lt; 0.05.
+For example, in the section below, we conduct the same analysis but use the weighting only for proteins with p-value &lt; 0.05.
 
 ``` r
 scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
 scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
-tNormScore05 <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, scoreNorm * scoreT, 1)
+tNormScore05 <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, scoreNorm * scoreT, scoreT)
 validProteinGroupsRatios$tNormScore05 <- tNormScore05
 scoreSums05 <- c()
 currentSum <- 0
@@ -729,6 +729,8 @@ plot(volcanoPlot05)
 ```
 
 ![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-3.png)
+
+Here we have scored based on their ability to be significantly differentially expressed or strongly differentially expressed. It is also possible to require proteins to be both significantly differentially expressed and strongly differentially expressed. For this, replace *scoreNorm \* scoreT* with *1-((1-scoreNorm) \* (1-scoreT))*. In this example however, no protein satisfies both condition.
 
 Missing values imputation
 -------------------------
