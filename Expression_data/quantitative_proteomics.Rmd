@@ -479,7 +479,7 @@ fdrPlot <- fdrPlot + xlab("p-value") + ylab("FDR (%)")
 plot(fdrPlot)
 ```
 
-In this example, 10% FDR is achieved at p-value `r round(10^-pValue10, 3)` and 5% FDR at p-value `r round(10^-pValue5, 3)`, as indicated by the orange and green lines, respectively. the lowest q-value is `r round(100*lastLowesQValue, 2)`%.
+In this example, 10% FDR is achieved at p-value `r round(10^-pValue10, 3)` and 5% FDR at p-value `r round(10^-pValue5, 3)`, as indicated by the orange and green lines, respectively. the lowest q-value is `r round(100*lastLowesQValue, 2)`%. The ability to differentiate proteins at a given FDR depends on the score metric used to score them. Here the p-value alone does not allow reaching an FDR of 1%.
 
 
 ## Independent weighting hypothesis
@@ -646,6 +646,7 @@ volcanoPlot05 <- volcanoPlot05 + xlab("Fold Change [log2]") + ylab("p-value [-lo
 plot(volcanoPlot05)
 ```
 
+Here we have scored based on their ability to be significantly differentially expressed or strongly differentially expressed. It is also possible to require proteins to be both significantly differentially expressed and strongly differentially expressed. For this, replace _scoreNorm * scoreT_ with _1-((1-scoreNorm) * (1-scoreT))_. In this example however, no protein satisfies both condition.
 
 ## Missing values imputation
 
