@@ -493,18 +493,18 @@ plot(fcHistogramPlot)
 With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis for the FDR estimation. 
 
 ```{r fdr_correction_plot}
+
 scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
 scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
 tNormScore <- scoreNorm * scoreT
 validProteinGroupsRatios$tNormScore <- tNormScore
-sumScore <- sum(tNormScore)
 scoreSums <- c()
 currentSum <- 0
 for (i in order(validProteinGroupsRatios$tNormScore)) {
   currentSum <- currentSum + tNormScore[i]
   scoreSums[i] <- currentSum
 }
-scoreSums <- scoreSums / currentSum * totalFP
+scoreSums <- scoreSums / currentSum * tPopulation
 correctedFdr <- c()
 index <- 1
 for (i in order(validProteinGroupsRatios$tNormScore)) {
@@ -512,16 +512,35 @@ for (i in order(validProteinGroupsRatios$tNormScore)) {
   index <- index + 1
 }
 validProteinGroupsRatios$correctedFdr <- correctedFdr
-correctedFdrPercent <- 100 * correctedFdr
+correctedQValue <- c()
+lastLowesQValue <- 1
+for (i in order(validProteinGroupsRatios$tNormScore, decreasing = T)) {
+  fdrAtI <- validProteinGroupsRatios$correctedFdr[i]
+  if (fdrAtI < lastLowesQValue) {
+    lastLowesQValue <- fdrAtI
+  }
+  correctedQValue[i] <- lastLowesQValue
+}
+validProteinGroupsRatios$correctedQValue <- correctedQValue
 
-regulationConfidence <- ifelse(correctedFdrPercent <= 5, "Middle", "Low")
-regulationConfidence <- ifelse(correctedFdrPercent <= 1, "High", regulationConfidence)
+correctedFdrPercent <- 100 * correctedFdr
+correctedQValuePercent <- 100 * correctedQValue
+
+regulationConfidence <- ifelse(correctedQValuePercent <= 5, "Middle", "Low")
+regulationConfidence <- ifelse(correctedQValuePercent <= 1, "High", regulationConfidence)
 
 fdrPlot <- ggplot()
-fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=fdrPercent), size = 1, alpha=0.5, col = "blue")
-fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent, col=regulationConfidence), size = 1, alpha=0.5)
+fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent), alpha=0.5, size = 1, col = "blue")
+fdrPlot <- fdrPlot + geom_line(aes(x=tNormScore, y=correctedQValuePercent), col = "red")
 fdrPlot <- fdrPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
 plot(fdrPlot)
+
+correctedFdrPlot <- ggplot()
+correctedFdrPlot <- correctedFdrPlot + geom_point(aes(x=tNormScore, y=qValuePercent), size = 1, alpha=0.5, col = "blue")
+correctedFdrPlot <- correctedFdrPlot + geom_point(aes(x=tNormScore, y=correctedQValuePercent, col=regulationConfidence), size = 1, alpha=0.5)
+correctedFdrPlot <- correctedFdrPlot + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
+correctedFdrPlot <- correctedFdrPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
+plot(correctedFdrPlot)
 ```
 
 In the following, we plot the p-value against the fold change between the two conditions.
@@ -529,6 +548,7 @@ In the following, we plot the p-value against the fold change between the two co
 ```{r volcano_plot}
 volcanoPlot <- ggplot()
 volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog, col=regulationConfidence), size = 1, alpha = 0.5)
+volcanoPlot <- volcanoPlot + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
 volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
 plot(volcanoPlot)
 ```
