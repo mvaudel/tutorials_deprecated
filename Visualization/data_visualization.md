@@ -91,7 +91,7 @@ for (level in medianLabels) {
 chickenViolinPlot <- ggplot()
 chickenViolinPlot <- chickenViolinPlot + geom_violin(aes(x=chickenDataset$feed, y=chickenDataset$weight), width = 0.6, alpha = 0.5)
 chickenViolinPlot <- chickenViolinPlot + geom_jitter(aes(x=chickenDataset$feed, y=chickenDataset$weight), width = 0.2, alpha = 0.5)
-chickenViolinPlot <- chickenViolinPlot + geom_line(aes(x=medianLabels, y=medianValues, group=medianGroups), alpha = 0.5)
+chickenViolinPlot <- chickenViolinPlot + geom_line(aes(x=medianLabels, y=medianValues, group=medianGroups), linetype = "dashed" , alpha = 0.5)
 chickenViolinPlot <- chickenViolinPlot + labs(x = "Diet", y = "Weigth [g]")
 plot(chickenViolinPlot)
 ```
@@ -112,7 +112,7 @@ newPopulation <- c(populationReal, populationFake)
 newDiet <- c(chickenDataset$feed, chickenDataset$feed)
 
 # 3. We create the fake weight and append it to the original weight
-fakeWeight <- ifelse(chickenDataset$feed == "sunflower",  runif(1, 0.3, 0.7) * chickenDataset$weight, runif(1, 1.7, 1.9) * chickenDataset$weight)
+fakeWeight <- ifelse(chickenDataset$feed == "sunflower",  runif(1, 0.3, 0.6) * chickenDataset$weight, runif(1, 1.7, 1.9) * chickenDataset$weight)
 newWeight <- c(chickenDataset$weight, fakeWeight)
 
 # 5. We create a data frame for the fake population
@@ -173,7 +173,7 @@ chickenViolinPlot2 <- ggplot()
 chickenViolinPlot2 <- chickenViolinPlot2 + geom_violin(aes(x=chickenDataset$feed, y=chickenDataset$weight), col = "darkblue", width = 0.6, alpha = 0.5)
 chickenViolinPlot2 <- chickenViolinPlot2 + geom_violin(aes(x=fakeDataset$feed, y=fakeDataset$weight), col = "darkred", width = 0.6, alpha = 0.5)
 chickenViolinPlot2 <- chickenViolinPlot2 + geom_jitter(aes(x=chickenDataset2$feed, y=chickenDataset2$weight, col = chickenDataset2$population), width = 0.2, alpha = 0.5)
-chickenViolinPlot2 <- chickenViolinPlot2 + geom_line(aes(x=medianLabels, y=medianValues, group=medianGroups, col = medianGroups), alpha = 0.5)
+chickenViolinPlot2 <- chickenViolinPlot2 + geom_line(aes(x=medianLabels, y=medianValues, group=medianGroups, col = medianGroups), alpha = 0.5, linetype = "dashed")
 chickenViolinPlot2 <- chickenViolinPlot2 + labs(x = "Diet", y = "Weigth [g]", col = "Population")
 chickenViolinPlot2 <- chickenViolinPlot2 + scale_colour_manual(values = c(colorFake, colorTrue))
 plot(chickenViolinPlot2)
