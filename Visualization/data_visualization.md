@@ -180,3 +180,18 @@ plot(chickenViolinPlot2)
 ```
 
 ![](data_visualization_files/figure-markdown_github/chicken_violin_plot_median_2-1.png)
+
+With boxes
+
+``` r
+chickenViolinPlot2 <- ggplot()
+chickenViolinPlot2 <- chickenViolinPlot2 + geom_boxplot(aes(x=chickenDataset$feed, y=chickenDataset$weight), col = "darkblue", width = 0.6, alpha = 0.5)
+chickenViolinPlot2 <- chickenViolinPlot2 + geom_boxplot(aes(x=fakeDataset$feed, y=fakeDataset$weight), col = "darkred", width = 0.6, alpha = 0.5)
+chickenViolinPlot2 <- chickenViolinPlot2 + geom_jitter(aes(x=chickenDataset2$feed, y=chickenDataset2$weight, col = chickenDataset2$population), width = 0.2, alpha = 0.5)
+chickenViolinPlot2 <- chickenViolinPlot2 + geom_line(aes(x=medianLabels, y=medianValues, group=medianGroups, col = medianGroups), alpha = 0.5, linetype = "dashed")
+chickenViolinPlot2 <- chickenViolinPlot2 + labs(x = "Diet", y = "Weigth [g]", col = "Population")
+chickenViolinPlot2 <- chickenViolinPlot2 + scale_colour_manual(values = c(colorFake, colorTrue))
+plot(chickenViolinPlot2)
+```
+
+![](data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
