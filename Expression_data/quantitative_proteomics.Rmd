@@ -464,7 +464,7 @@ volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)
 plot(volcanoPlot)
 ```
 
-Note that in contrary to the previous method, we are using arbitrary thresholds and we have no control on the error rate.
+Note that in contrary to the previous method, we are using arbitrary thresholds and we have no control on the error rate. A control of the error rate using IHW can be done using the [IHW package](http://bioconductor.org/packages/devel/bioc/vignettes/IHW/inst/doc/introduction_to_ihw.html) of bioconductor.
 
 ## Missing values imputation
 

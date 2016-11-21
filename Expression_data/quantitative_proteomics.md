@@ -22,8 +22,6 @@ We are going to use the [ggplot2](http://ggplot2.org/) library. If you did not i
 library(ggplot2)
 ```
 
-    ## Warning: package 'ggplot2' was built under R version 3.2.5
-
 File import
 -----------
 
@@ -457,95 +455,29 @@ plot(lambdaHistogramPlot)
 corePopulation <- round(100*length(lambdaLog[abs(lambdaLog) < 1])/length(lambdaLog))/100
 ```
 
-76% of the p-values is contained within the 1.1 deviation ratio. This percentile will be used in the following as core population.
+70% of the p-values is contained within the 1.1 deviation ratio. This percentile will be used in the following as core population.
 
 Multiple hypothesis testing
 ---------------------------
 
-The more we run t-tests, the more chances we have to get a low p-value by chance. For example, when we run the test just one time, we are unlikely to find a p &lt; 1% by chance, whereas if we run the test 100 times, we are likely to find at least one p &lt; 1% by chance. This problem is called the multiple hypothesis testing. Correction for multiple hypothesis testing approaches were pioneered by Benjamini and Hochberg [(6)](#references). Below is an attempt at illustrating this problem intuitively.
+The more we run t-tests, the more chances we have to get a low p-value by chance. For example, when we run the test just one time, we are unlikely to find a p &lt; 1% by chance, whereas if we run the test 100 times, we are likely to find at least one p &lt; 1% by chance. This problem is called the multiple hypothesis testing.
 
-In the following we derive the number of randomly occurring low p-values, false discoveries (FP), from the t-distribution calibrated to the core population. The obtained distribution of false positives is displayed in red. Note that the density of the t-distribution inferred from the core population is used here instead of the p-value, the code can be adapted to use the p-value according to your preferences.
-
-``` r
-tScoreLimits <- qt(c(0.5-corePopulation/2, 0.5+corePopulation/2), df = degreesOfFreedom)
-tPopulation <- length(validProteinGroupsRatios$tTestStatistic[validProteinGroupsRatios$tTestStatistic > tScoreLimits[1] & validProteinGroupsRatios$tTestStatistic < tScoreLimits[2]])/corePopulation
-
-nBinsInOne <- 5
-binSize <- 1/nBinsInOne
-minStatistic <- floor(min(validProteinGroupsRatios$tTestStatistic))
-maxStatistic <- ceiling(max(validProteinGroupsRatios$tTestStatistic))
-
-quantilesStatistic <- quantile(validProteinGroupsRatios$tTestStatistic, c(0.5-corePopulation/2, 0.5, 0.5+corePopulation/2), na.rm = T, names = F)
-medianStatistic <- quantilesStatistic[2]
-interQuantilesStatistic <- quantilesStatistic[3] - quantilesStatistic[1]
-xDistribution <- minStatistic + (binSize * (1:(nBinsInOne * (maxStatistic - minStatistic))))
-yDistributionT <- dt(x = xDistribution, df = degreesOfFreedom)
-scale <- tPopulation / nBinsInOne
-yDistributionTNorm <- scale * yDistributionT
-
-tStatisticHistogramPlot <- ggplot()
-tStatisticHistogramPlot <- tStatisticHistogramPlot + geom_histogram(aes(x=validProteinGroupsRatios$tTestStatistic), col="blue", fill = "blue", alpha = 0.1, binwidth = binSize)
-tStatisticHistogramPlot <- tStatisticHistogramPlot + geom_line(aes(x=xDistribution, yDistributionTNorm), col="red", alpha = 0.8)
-tStatisticHistogramPlot <- tStatisticHistogramPlot + xlab("t-statistic") + ylab("Number of proteins")
-plot(tStatisticHistogramPlot)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/core_population-1.png)
-
-By dividing the estimated number of false positives by the number of proteins at a given t-statistic at increasing p-value, we obtain a false discovery rate, *FDR*, the share of proteins incorrectly marked as differentially expressed between the cell lines. In the following, we estimate the FDR at every p-value and plot it against the (log transformed) p-value.
-
-Since the number of hits can fluctuate around the estimated number of false positives, the FDR evolves in steps that can go over 100%. The lowers FDR achievable at a given p-value is therefore used instead. This is termed a *q-value*.
+It is possible to adjust the p-values to correct for multiple hypothesis testing. This can be done using the `p.adjust` function of the stats package. Note that numerous methods were established to correct for multiple hypothesis testing. The simplest approach is to multiply the p-values by the number of tests, called a *Bonferroni* correction. It is also possible to control the expected share of incorrect findings among the significant results, a False Discovery Rate (FDR). This is called a Benjamini and Hochberg correction, "BH", [(6)](#references).
 
 ``` r
-fdr <- c()
-index <- 1
-for (i in order(validProteinGroupsRatios$tTestPValue)) {
-  tStatistic <- validProteinGroupsRatios$tTestStatistic[i]
-  nFpAtI <- tPopulation * 2 * pt(tStatistic, df = degreesOfFreedom, lower.tail = tStatistic < 0)
-  fdrAtI <- nFpAtI / index
-  fdr[i] <- fdrAtI
-  index <- index + 1
-}
-validProteinGroupsRatios$fdr <- fdr
-fdrPercent <- 100 * fdr
+validProteinGroupsRatios$bonferroniPValue <- p.adjust(validProteinGroupsRatios$tTestPValue, method = "bonferroni")
+validProteinGroupsRatios$bhFDR <- p.adjust(validProteinGroupsRatios$tTestPValue, method = "BH")
 
-qValue <- c()
-lastLowesQValue <- 1
-pValue5 <- NA
-pValue10 <- NA
-for (i in order(validProteinGroupsRatios$tTestPValue, decreasing = T)) {
-  fdrAtI <- validProteinGroupsRatios$fdr[i]
-  if (fdrAtI < lastLowesQValue) {
-    lastLowesQValue <- fdrAtI
-  }
-  qValue[i] <- lastLowesQValue
-  if (is.na(pValue10) && lastLowesQValue < 0.1) {
-    pValue10 <- validProteinGroupsRatios$tTestPValueLog[i]
-  }
-  if (is.na(pValue5) && lastLowesQValue < 0.05) {
-    pValue5 <- validProteinGroupsRatios$tTestPValueLog[i]
-  }
-}
-if (is.na(pValue10)) {
-  pValue10 <- validProteinGroupsRatios$tTestPValueLog[i]
-}
-if (is.na(pValue5)) {
-  pValue5 <- validProteinGroupsRatios$tTestPValueLog[i]
-}
-validProteinGroupsRatios$qValue <- qValue
-qValuePercent <- 100 * qValue
-fdrPlot <- ggplot()
-fdrPlot <- fdrPlot + geom_point(aes(x=validProteinGroupsRatios$tTestPValueLog, y=fdrPercent), alpha=0.5, size = 1, col = "blue")
-fdrPlot <- fdrPlot + geom_line(aes(x=validProteinGroupsRatios$tTestPValueLog, y=qValuePercent), col = "red")
-fdrPlot <- fdrPlot + geom_vline(aes(xintercept = pValue5), col="darkgreen", alpha = 0.8, linetype="dotted", size = 1)
-fdrPlot <- fdrPlot + geom_vline(aes(xintercept = pValue10), col="darkorange", alpha = 0.8, linetype="dotted", size = 1)
-fdrPlot <- fdrPlot + xlab("p-value") + ylab("FDR (%)")
-plot(fdrPlot)
+bhPlot <- ggplot()
+bhPlot <- bhPlot + geom_line(aes(x=validProteinGroupsRatios$tTestPValueLog, 100 * validProteinGroupsRatios$bonferroniPValue), col="red", alpha = 0.8)
+bhPlot <- bhPlot + geom_line(aes(x=validProteinGroupsRatios$tTestPValueLog, 100 * validProteinGroupsRatios$bhFDR), col="blue", alpha = 0.8)
+bhPlot <- bhPlot + xlab("Original p-value") + ylab("Bonferroni p-value [%] (red) - BH FDR [%] (blue)")
+plot(bhPlot)
 ```
 
-![](quantitative_proteomics_files/figure-markdown_github/fdr_plot-1.png)
+![](quantitative_proteomics_files/figure-markdown_github/bh_plot-1.png)
 
-In this example, 10% FDR is achieved at p-value 0.074 and 5% FDR at p-value 0.027, as indicated by the orange and green lines, respectively. the lowest q-value is 2.5%. The ability to differentiate proteins at a given FDR depends on the score metric used to score them. Here the p-value alone does not allow reaching an FDR of 1%.
+According to these two methods, no result can be retained accounting for multiple hypothesis testing.
 
 Independent weighting hypothesis
 --------------------------------
@@ -575,162 +507,30 @@ plot(fcHistogramPlot)
 
 ![](quantitative_proteomics_files/figure-markdown_github/fc_histogram-1.png)
 
-With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis (IWH) for the FDR estimation. In the following, we sort the proteins according to their probability to belong to the fold change and student distributions. The q-value estimated previously is plotted in blue, and the q-value after IWH is colored in green, orange, and red for q-values below 1%, between 1 and 5%, and higher than 5%, respectively.
+With the hypothesis that false positives introduced by multiple hypothesis testing are likely to distribute according to the rest of the fold changes, independently of the p-value, we can use the fold change as independent weighting hypothesis (IWH) to spread the hits on another dimension. The resulting plot is called a *volcano plot*.
+
+The proteins on the upper side of the plot are the ones with the lowest p-value (note the inverted log10 scale). In order to avoid false positives, we are going to require these significant hits to have a high fold change. One typically uses a fold change of 2 (note the log2 scale).
 
 ``` r
-scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
-scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
-tNormScore <- scoreNorm * scoreT
-validProteinGroupsRatios$tNormScore <- tNormScore
-scoreSums <- c()
-currentSum <- 0
-maxIncrease <- 1/tPopulation # Cannot be more than one FP per protein
-for (i in order(validProteinGroupsRatios$tNormScore)) {
-  increase <- tNormScore[i]
-  if (increase > maxIncrease) {
-    increase <- maxIncrease
-  }
-  currentSum <- currentSum + increase
-  scoreSums[i] <- currentSum
-}
-scoreSums <- scoreSums / currentSum * tPopulation
-correctedFdr <- c()
-index <- 1
-for (i in order(validProteinGroupsRatios$tNormScore)) {
-  correctedFdr[i] <- scoreSums[i] / index
-  index <- index + 1
-}
-validProteinGroupsRatios$correctedFdr <- correctedFdr
-correctedQValue <- c()
-lastLowesQValue <- 1
-for (i in order(validProteinGroupsRatios$tNormScore, decreasing = T)) {
-  fdrAtI <- validProteinGroupsRatios$correctedFdr[i]
-  if (fdrAtI < lastLowesQValue) {
-    lastLowesQValue <- fdrAtI
-  }
-  correctedQValue[i] <- lastLowesQValue
-}
-validProteinGroupsRatios$correctedQValue <- correctedQValue
+pLimit <- 0.05
+pLimitLog <- -log10(pLimit)
+regulationConfidence <- character(length(validProteinGroupsRatios$tTestPValueLog))
+regulationConfidence <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, "Significant but not Differentially Expressed", "Not Significant")
+regulationConfidence <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit & abs(validProteinGroupsRatios$fc) > 1, "Differentially Expressed", regulationConfidence)
 
-correctedFdrPercent <- 100 * correctedFdr
-correctedQValuePercent <- 100 * correctedQValue
-
-regulationConfidence <- ifelse(correctedQValuePercent <= 5, "Middle", "Low")
-regulationConfidence <- ifelse(correctedQValuePercent <= 1, "High", regulationConfidence)
-
-fdrPlot <- ggplot()
-fdrPlot <- fdrPlot + geom_point(aes(x=tNormScore, y=correctedFdrPercent), alpha=0.5, size = 1, col = "blue")
-fdrPlot <- fdrPlot + geom_line(aes(x=tNormScore, y=correctedQValuePercent), col = "red")
-fdrPlot <- fdrPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
-plot(fdrPlot)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_plot-1.png)
-
-``` r
-correctedFdrPlot <- ggplot()
-correctedFdrPlot <- correctedFdrPlot + geom_point(aes(x=tNormScore, y=qValuePercent), size = 1, alpha=0.5, col = "blue")
-correctedFdrPlot <- correctedFdrPlot + geom_point(aes(x=tNormScore, y=correctedQValuePercent, col=regulationConfidence), size = 1, alpha=0.5)
-correctedFdrPlot <- correctedFdrPlot + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
-correctedFdrPlot <- correctedFdrPlot + xlab("p(t)*p(norm)") + ylab("FDR (%)")
-plot(correctedFdrPlot)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_plot-2.png)
-
-In the following, we plot the p-value against the fold change between the two conditions. This plot is called a *volcano plot*. The protein is colored depending on its q-value as detailed above.
-
-``` r
 volcanoPlot <- ggplot()
 volcanoPlot <- volcanoPlot + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog, col=regulationConfidence), size = 1, alpha = 0.5)
-volcanoPlot <- volcanoPlot + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
+volcanoPlot <- volcanoPlot + geom_hline(aes(yintercept = pLimitLog), col="blue", alpha = 0.8, linetype="dotted", size = 1)
+volcanoPlot <- volcanoPlot + geom_vline(aes(xintercept = -1), col="blue", alpha = 0.8, linetype="dotted", size = 1)
+volcanoPlot <- volcanoPlot + geom_vline(aes(xintercept = 1), col="blue", alpha = 0.8, linetype="dotted", size = 1)
+volcanoPlot <- volcanoPlot + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Protein Category")
 volcanoPlot <- volcanoPlot + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
 plot(volcanoPlot)
 ```
 
 ![](quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
 
-Note that the function used to score the protein, *tNormScore &lt;- scoreNorm \* scoreT*, can be easily extended. For example, it can be combined with an arbirary p-value threshold, e.g. 0.05.
-
-``` r
-pLimit <- 0.05
-```
-
-For example, in the section below, we conduct the same analysis but use the weighting only for proteins with p-value &lt; 0.05.
-
-``` r
-scoreNorm <- dnorm(validProteinGroupsRatios$fc, mean = medianFC, sd = interQuantilesFC/2)
-scoreT <- dt(validProteinGroupsRatios$tTestStatistic, df =degreesOfFreedom)
-tNormScore05 <- ifelse(validProteinGroupsRatios$tTestPValue < pLimit, scoreNorm * scoreT, scoreT)
-validProteinGroupsRatios$tNormScore05 <- tNormScore05
-scoreSums05 <- c()
-currentSum <- 0
-maxIncrease <- 1/tPopulation # Cannot be more than one FP per protein
-for (i in order(validProteinGroupsRatios$tNormScore05)) {
-  increase <- tNormScore05[i]
-  if (increase > maxIncrease) {
-    increase <- maxIncrease
-  }
-  currentSum <- currentSum + increase
-  scoreSums05[i] <- currentSum
-}
-scoreSums05 <- scoreSums05 / currentSum * tPopulation
-correctedFdr05 <- c()
-index <- 1
-for (i in order(validProteinGroupsRatios$tNormScore05)) {
-  correctedFdr05[i] <- scoreSums05[i] / index
-  index <- index + 1
-}
-validProteinGroupsRatios$correctedFdr05 <- correctedFdr05
-correctedQValue05 <- c()
-lastLowesQValue <- 1
-for (i in order(validProteinGroupsRatios$tNormScore05, decreasing = T)) {
-  fdrAtI <- validProteinGroupsRatios$correctedFdr05[i]
-  if (fdrAtI < lastLowesQValue) {
-    lastLowesQValue <- fdrAtI
-  }
-  correctedQValue05[i] <- lastLowesQValue
-}
-validProteinGroupsRatios$correctedQValue05 <- correctedQValue05
-
-correctedFdr05Percent <- 100 * correctedFdr05
-correctedQValue05Percent <- 100 * correctedQValue05
-
-regulationConfidence05 <- ifelse(correctedQValue05Percent <= 5, "Middle", "Low")
-regulationConfidence05 <- ifelse(correctedQValue05Percent <= 1, "High", regulationConfidence05)
-
-fdrPlot05 <- ggplot()
-fdrPlot05 <- fdrPlot05 + geom_point(aes(x=tNormScore05, y=correctedFdr05Percent), alpha=0.5, size = 1, col = "blue")
-fdrPlot05 <- fdrPlot05 + geom_line(aes(x=tNormScore05, y=correctedQValue05Percent), col = "red")
-fdrPlot05 <- fdrPlot05 + xlab("p(t)*p(norm)") + ylab("FDR (%)")
-plot(fdrPlot05)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-1.png)
-
-``` r
-correctedFdrPlot05 <- ggplot()
-correctedFdrPlot05 <- correctedFdrPlot05 + geom_point(aes(x=tNormScore05, y=qValuePercent), size = 1, alpha=0.5, col = "blue")
-correctedFdrPlot05 <- correctedFdrPlot05 + geom_point(aes(x=tNormScore05, y=correctedQValue05Percent, col=regulationConfidence05), size = 1, alpha=0.5)
-correctedFdrPlot05 <- correctedFdrPlot05 + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
-correctedFdrPlot05 <- correctedFdrPlot05 + xlab("p(t)*p(norm)") + ylab("FDR (%)")
-plot(correctedFdrPlot05)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-2.png)
-
-``` r
-volcanoPlot05 <- ggplot()
-volcanoPlot05 <- volcanoPlot05 + geom_point(aes(x=validProteinGroupsRatios$fc, y=validProteinGroupsRatios$tTestPValueLog, col=regulationConfidence05), size = 1, alpha = 0.5)
-volcanoPlot05 <- volcanoPlot05 + scale_color_manual(values=c("darkgreen", "darkRed", "darkorange"), name="Regulation Confidence", breaks=c("High", "Middle", "Low"), labels=c("High", "Middle", "Low"))
-volcanoPlot05 <- volcanoPlot05 + geom_hline(aes(yintercept = -log10(pLimit)), col="blue", alpha = 0.8, linetype="dotted", size = 1)
-volcanoPlot05 <- volcanoPlot05 + xlab("Fold Change [log2]") + ylab("p-value [-log(p)]")
-plot(volcanoPlot05)
-```
-
-![](quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-3.png)
-
-Here we have scored based on their ability to be significantly differentially expressed or strongly differentially expressed. It is also possible to require proteins to be both significantly differentially expressed and strongly differentially expressed. For this, replace *scoreNorm \* scoreT* with *1-((1-scoreNorm) \* (1-scoreT))*. In this example however, no protein satisfies both condition.
+Note that in contrary to the previous method, we are using arbitrary thresholds and we have no control on the error rate. A control of the error rate using IHW can be done using the [IHW package](http://bioconductor.org/packages/devel/bioc/vignettes/IHW/inst/doc/introduction_to_ihw.html) of bioconductor.
 
 Missing values imputation
 -------------------------
