@@ -23,4 +23,4 @@ This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Genome_As
 
 This [tutorial](https://github.com/mvaudel/tutorials/blob/master/Expression_data/quantitative_proteomics.md) shows basic methods and visualization techniques for the interpretation of expression data using an example from quantitative proteomics.
 
-![](Expression_Data/quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-3.png)
+![](Expression_data/quantitative_proteomics_files/figure-markdown_github/fdr_correction_0.05-3.png)
