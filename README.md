@@ -9,7 +9,7 @@ The tutorials are provided without guarantee using simple example datasets. Hope
 This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization.md) shows how to make a Figure displaying expression profiles under different conditions for different groups. This will get you rid of ugly bar plots. See example below.
 
 
-![](https://github.com/mvaudel/tutorials/tree/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
+![](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
 
 _Plotting expression values with a bar plot is hurting your data._
 
