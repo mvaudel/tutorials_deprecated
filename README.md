@@ -9,7 +9,7 @@ The tutorials are provided without guarantee using simple example datasets. Hope
 This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization.md) shows how to make a Figure displaying expression profiles under different conditions for different groups. This will get you rid of ugly bar plots. See example below.
 
 
-![](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
+![](https://raw.githubusercontent.com/mvaudel/tutorials/blob/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
 
 _Yout expression values deserve better than a bar plot with two stars!_
 
@@ -17,10 +17,10 @@ _Yout expression values deserve better than a bar plot with two stars!_
 
 This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Genome_Association/genome_association.md) shows how to draw some plots used in genome wide association.
 
-![](https://github.com/mvaudel/tutorials/blob/master/Genome_Association/genome_association_files/figure-markdown_github/manhattan_plot-1.png)
+![](https://raw.githubusercontent.com/mvaudel/tutorials/blob/master/Genome_Association/genome_association_files/figure-markdown_github/manhattan_plot-1.png)
 
 ## Analysis of Expression Data
 
 This [tutorial](https://github.com/mvaudel/tutorials/blob/master/Expression_data/quantitative_proteomics.md) shows basic methods and visualization techniques for the interpretation of expression data using an example from quantitative proteomics.
 
-![](https://github.com/mvaudel/tutorials/blob/master/Expression_data/quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
+![](https://raw.githubusercontent.com/mvaudel/tutorials/blob/master/Expression_data/quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
