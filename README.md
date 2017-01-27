@@ -11,7 +11,7 @@ This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Visualiza
 
 ![](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
 
-_Plotting expression values with a bar plot is hurting your data._
+_Yout expression values deserve better than a bar plot with two stars!_
 
 ## Genome Wide Association
 
