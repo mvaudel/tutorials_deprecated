@@ -14,3 +14,12 @@ The gaps correspond to acquisition time where the instrument is not measuring MS
 In a proteomics sample, we expect peaks in MS1 to be the detection of ionized peptides. In MS2, we expect peaks to be the product of the fragmentation of peptides, i.e. fragment ions. Note however that while the mass spectrometer is tuned to target peptides and peptide fragments, other species can be recorded, like small molecules, sugars, or lipids.
 
 
+#### :thought_balloon:3
+
+Peptide ionization is a competitive process. Some peptides managed to capture three charges while others were left with only two.
+
+
+#### :thought_balloon:4
+
+The peptides identified cover the protein sequence only partially. Some parts of the sequence cannot be identified with the protease used, and some parts could be identified but this was not achieved in our experiment. 100% sample coverage requires a distribution of cleavage sites allowing the generation of detectable peptides over the entire sequence, and a high yield in peptide identification. In practice it is extremely rare.
+
