@@ -65,7 +65,7 @@ The top screen shows the ion chromatogram, it is the sum of MS1 intensities at a
 
 ![Ion Chromatogram](images/chromatogram.png?raw=true "Ion Chromatogram")
 
-:thought_balloon: What are the gaps that we observe? [1](../Answers.md)
+[:thought_balloon:1](../Answers.md#1) What are the gaps that we observe?
 
 
 

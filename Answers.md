@@ -4,6 +4,6 @@ Below are answers on the questions raised during the tutorials. They are in no w
 
 ## Proteomics Data
 
-### 1. What are the gaps that we observe?
+#### :thought_balloon:1
 
 The gaps correspond to acquisition time where the instrument is not measuring MS1 spectra. For example, the instrument can be fragmenting or acquiring MSn spectra.
