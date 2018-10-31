@@ -17,14 +17,14 @@ You will find the following icons throughout the text:
 
 This short [tutorial](Proteomics_data/proteomics_data.md) introduces mass spectrometry based proteomics data and gives a quick glance at a raw file taken from ProteomeXchange.
 
-![](Proteomics_data/images/chromatogram.png)
+![](Proteomics_data/images/chromatogram.png?raw=true)
 
 
 ## Proteomics Identification
 
 This short [tutorial](Proteomics_identification/proteomics_identification.md) gives a tour on identification results.
 
-![](Proteomics_data/images/spectrum.png)
+![](Proteomics_identification/images/spectrum.png?raw=true)
 
 
 ## Visualization of Expression Values

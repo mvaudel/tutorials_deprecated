@@ -60,6 +60,8 @@ The top screen shows the ion chromatogram, it is the sum of MS1 intensities at a
 
 :pencil2: Zoom in a section of the chromatogram
 
+You should see something like this.
+
 ![Ion Chromatogram Zoom](images/chromatogram_zoom.png?raw=true "Ion Chromatogram Zoom")
 
 [:thought_balloon:1](../Answers.md#thought_balloon1) _What are the gaps that we observe?_
