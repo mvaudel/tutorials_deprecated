@@ -25,3 +25,7 @@ Peptide ionization is a competitive process. Some peptides managed to capture th
 
 The peptides identified cover the protein sequence only partially. Some parts of the sequence cannot be identified with the protease used, and some parts could be identified but this was not achieved in our experiment. 100% sample coverage requires a distribution of cleavage sites allowing the generation of detectable peptides over the entire sequence, and a high yield in peptide identification. In practice it is extremely rare.
 
+
+#### :thought_balloon:5
+
+A coverage of 99% corresponds to a false negative rate (FNR) of 1%.
