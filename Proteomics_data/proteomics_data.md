@@ -63,15 +63,15 @@ The top screen shows the ion chromatogram, it is the sum of MS1 intensities at a
 
 :pencil2: Zoom in a section of the chromatogram
 
-![Ion Chromatogram](images/chromatogram.png?raw=true "Ion Chromatogram")
+![Ion Chromatogram Zoom](images/chromatogram_zoom.png?raw=true "Ion Chromatogram Zoom")
 
-[:thought_balloon:1](../Answers.md#1) What are the gaps that we observe?
+[:thought_balloon:1](../Answers.md#thought_balloon1) _What are the gaps that we observe?_
 
+In the table at the bottom of the screen, you can see all the spectra recorded. You can select spectra and visualize them. In the image below, you can see an MS1 and MS2 specrum selected.
 
+![MS1 MS2](images/MS1_MS2.png?raw=true "MS1 MS2")
 
-
-
-
+[:thought_balloon:2](../Answers.md#thought_balloon2) _In proteomics, what do we expect to find in these spectra?_
 
 
 ## References
