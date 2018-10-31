@@ -50,7 +50,7 @@ Navigating the raw data will allow you to find specific spectra, and look at the
 
 You should see the following picture.
 
-![SeeMS Overview](images/seeMS_1.jpg?raw=true "SeeMS Overview").
+![SeeMS Overview](Proteomics_data/images/seeMS_1.jpg?raw=true "SeeMS Overview").
 
 
 
