@@ -2,6 +2,11 @@
 
 In this tutorial, navigate proteomics data at various stages of a quantitative proteomic analysis. Please note that there is a vast variety of acquisition modes resulting in differences in the data. Notably, one should distinguish (i) _targeted_ proteomics, where specific compounds are targeted by the mass spectrometer; and (ii) _untargeted_ acquisition, where the mass spectrometer screens in an unbiased fashion. Two acquisition modes can be distinguished in _untargeted_ proteomics: (i) _Data Dependent Acquisition_, DDA, where the mass spectrometer attempts at fragmenting one compound at a time by selecting them based on mass, and (ii) _Data Independent Acquisition_, DIA, where the mass spectrometer fragments all compounds within a given mass range. Here, we will focus on untargeted DDA proteomics data.
 
+Proteomics data consist of (1) MS1 spectra, also called survey scan, the mass spectra of compounds entering the mass spectrometer at a given time point, and (2) MSn spectra, the mass spectra of compounds after n fragmentations. In most cases, compounds are fragmented once, resulting in MS1 and MS2 spectra, before and after fragmentation, respectively. As scematized in Figure 1 below, a proteomics dataset can be represented in multiple dimensions: the time of elution, m/z and intensities.
+
+![Proteomics Data](images/data.png?raw=true "Proteomics data")
+_Figure 1: schematic representation of proteomics data, taken [here](https://www.ncbi.nlm.nih.gov/pubmed/28902424)._
+
 
 ## Raw data
 
@@ -48,9 +53,19 @@ Navigating the raw data will allow you to find specific spectra, and look at the
 
 :pencil2: Open the file `UPS1_12500amol_R1.raw` downloaded in the previous section.
 
-You should see the following picture.
+You should see the following screen.
 
-[SeeMS Overview](images/seeMS_1.png?raw=true "SeeMS Overview").
+![SeeMS Overview](images/seeMS_1.png?raw=true "SeeMS Overview")
+
+The top screen shows the ion chromatogram, it is the sum of MS1 intensities at a given elution time.
+
+![Ion Chromatogram](images/chromatogram.png?raw=true "Ion Chromatogram")
+
+:pencil2: Zoom in a section of the chromatogram
+
+![Ion Chromatogram](images/chromatogram.png?raw=true "Ion Chromatogram")
+
+:thought_balloon: What are the gaps that we observe? [1](../Answers.md)
 
 
 
