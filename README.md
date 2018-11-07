@@ -27,23 +27,26 @@ This short [tutorial](Proteomics_identification/proteomics_identification.md) gi
 ![](Proteomics_identification/images/spectrum.png?raw=true)
 
 
-## Visualization of Expression Values
+## Reporter ions
 
-This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Visualization/data_visualization.md) shows how to make a Figure displaying expression profiles under different conditions for different groups. This will get you rid of ugly bar plots. See example below.
+This short [tutorial](Reporter_ions/4.2-Reporter-Ions.pdf) on reporter ions quantification is taken from the [Compomics tutorials](https://compomics.com/bioinformatics-for-proteomics/quantification/). The PeptideShaker results can be found [here](Reporter_ions/Reporter_tutorial.zip) and the Reporter tool [here](Reporter-0.7.11.zip).
+
+![](Reporter_ions/reporter.png?raw=true)
 
 
-![](https://raw.githubusercontent.com/mvaudel/tutorials/master/Visualization/data_visualization_files/figure-markdown_github/chicken_box_plot_median_2-1.png)
+## Proteomics Quantification
 
-_Yout expression values deserve better than a bar plot with two stars!_
+This short [tutorial](Proteomics_quantification/quantitative_proteomics.md) takes you through the processing of label free proteomics quantitative data. Many of the methods introduced can be reused with other types of quantitative data.
 
-## Genome Wide Association
 
-This short [tutorial](https://github.com/mvaudel/tutorials/blob/master/Genome_Association/genome_association.md) shows how to draw some plots used in genome wide association.
+![](Proteomics_quantification/images/volcano_UPS_B_FC-1.png)
 
-![](https://raw.githubusercontent.com/mvaudel/tutorials/master/Genome_Association/genome_association_files/figure-markdown_github/manhattan_plot-1.png)
 
-## Analysis of Expression Data
 
-This [tutorial](https://github.com/mvaudel/tutorials/blob/master/Expression_data/quantitative_proteomics.md) shows basic methods and visualization techniques for the interpretation of expression data using an example from quantitative proteomics.
+## Functional resources
 
-![](https://raw.githubusercontent.com/mvaudel/tutorials/master/Expression_data/quantitative_proteomics_files/figure-markdown_github/volcano_plot-1.png)
+This short [tutorial](Functional_resources/functional_resources.md) queries Reactome and String using a set of genes.
+
+
+![](Functional_resources/images/t2d_subnetwork-1.png)
+

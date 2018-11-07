@@ -1,0 +1,44 @@
+---
+title: "Possible solution"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+:pencil2: Do the same for condition _B_ and save the result in a data frame called `proteinGroupsNaFiltered`.
+
+```{r NA_B}
+
+bValues <- proteinGroupsAfiltered[, c("B1", "B2", "B3")]
+bNA <- apply(X = bValues, FUN = is.na, MARGIN = c(1, 2))
+bNaSum <- apply(X = bNA, FUN = sum, MARGIN = 1)
+
+proteinGroups <- proteinGroupsAfiltered[bNaSum <= 1, ]
+
+print(paste0("# proteins excluded: ", nrow(proteinGroupsAfiltered) - nrow(proteinGroups)))
+
+```
+
+:pencil2: Set the `alternative` and `paired` variables.
+
+```{r t-test_params}
+
+alternative <- "two.sided"
+paired <- F
+
+```
+
+:pencil2: Count the number of yeast and UPS protein groups with FDR < 0.05 and fold change lower than 0.5 or higher than 2. If we use these selection criteria, what are our false positive and false negative rates?
+
+```{r FDR-FNR}
+
+valid <- proteinGroups$bhFDR < 0.05 & (proteinGroups$foldChange < -1 | proteinGroups$foldChange > 1)
+
+FDR <- sum(proteinGroups$Species != "UPS" & valid) / sum(valid)
+
+FNR <- sum(proteinGroups$Species == "UPS" & !valid) / sum(proteinGroups$Species == "UPS")
+
+```

@@ -29,3 +29,15 @@ The peptides identified cover the protein sequence only partially. Some parts of
 #### :thought_balloon:5
 
 A coverage of 99% corresponds to a false negative rate (FNR) of 1%.
+
+
+## Proteomics Quantification
+
+#### :thought_balloon:6
+
+There are many flavors of box plots. You will find details on the implementation in the function help `?geom_boxplot`.
+
+#### :thought_balloon:7
+
+We subtract when working with log-transformed ratios, this corresponds to a division of ratios.
+
