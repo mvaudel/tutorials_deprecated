@@ -2,7 +2,7 @@
 
 This folder contains bioinformatics tutorials used for teaching. Just like you need to adapt your protocol to your sample, there is not a one workflow fits all when it comes to data interpretation. The scripts proposed here are not to be blindly copy-pasted, but aim at introducing basic methods. You can use some of the tutorials as cheat sheet when developing your own scripts.
 
-The tutorials are provided without guarantee using simple example datasets. Hopefully you will find them useful. If you have suggestions and comments, please post them on the [issue tracker](https://github.com/mvaudel/tutorials/issues). I will extend the tutorials according to your feedback.
+Disclaimer: The tutorials are provided without guarantee using simple example datasets. Hopefully you will find them useful. You will surely have more expertise than me on many of these topics, and in biology and programming in general. I apologize in advance for the limitations of the content proposed here. If you have suggestions and comments, please post them on the [issue tracker](https://github.com/mvaudel/tutorials/issues). I will happily extend the tutorials according to your feedback.
 
 ## Legend
 
@@ -42,11 +42,12 @@ This short [tutorial](Proteomics_quantification/quantitative_proteomics.md) take
 ![](Proteomics_quantification/images/volcano_UPS_B_FC-1.png)
 
 
-
 ## Functional resources
 
 This short [tutorial](Functional_resources/functional_resources.md) queries Reactome and String using a set of genes.
 
 
 ![](Functional_resources/images/t2d_subnetwork-1.png)
+
+
 
