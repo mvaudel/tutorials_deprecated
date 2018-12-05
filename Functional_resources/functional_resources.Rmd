@@ -123,6 +123,7 @@ t2dGraphPlot <- ggraph(t2dGraph, layout = 'kk') +
     geom_node_point(col = "darkred") +
     theme(axis.title = element_blank(),
           axis.text = element_blank(),
+          axis.ticks = element_blank(),
           panel.grid = element_blank())
 
 plot(t2dGraphPlot)
