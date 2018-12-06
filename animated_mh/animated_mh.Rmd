@@ -15,10 +15,143 @@ In this section, we color the Manhattan based on possible effect on pathways. As
 
 ```{r input}
 
+# Read table
 giantData <- read.table(file = "resources/bmi_p-values.gz", header = T, stringsAsFactors = F, sep = "\t")
-giantData <- giantData[giantData$SNPNAME != '-', ]
+
+# Select markers and columns of interest
+giantData <- giantData[giantData$SNPNAME != '-' & !is.na(giantData$Pvalue), c("CHR", "POS", "SNPNAME", "Pvalue")]
+
+# Formatting
+names(giantData) <- c("chr", "bp", "id", "p")
+giantData$p <- -log10(giantData$p)
+
 
 ```
+
+A Manhattan plot displays the p-value of an association against the genomic coordinates of markers. Many packages allow drawing these, and it is quite straightforward to do using [ggplot2](https://ggplot2.tidyverse.org/). When building the plot, we will use colors to highlight specific features. Choosing colors is [less trivial than it seems](https://serialmentor.com/dataviz/color-pitfalls.html), we will use the [scico](https://github.com/thomasp85/scico) package, that is built on [palettes developed by Fabio Crameri](http://www.fabiocrameri.ch/colourmaps.php).
+
+:pencil2: Install the packages if needed, and load them.
+
+```{r packages}
+
+# install packages if needed
+# install.packages("ggplot2")
+# install.packages("scico")
+
+# Load packages
+library(ggplot2)
+library(scico)
+
+# Set ggplot theme once and for all
+theme_set(theme_bw(base_size = 11))
+
+```
+
+The first thing that we will need to do to build a Manhattan plot is to convert variant chromosomic coordinates into coordinates that can be aligned on an axis. For this we need to know the size of each chromosome. This can easily be obtained from [Ensembl](http://grch37.ensembl.org/Homo_sapiens/Location/Chromosome?r=1), just note that these are obviously assembly specific.
+
+```{r chr_lengths}
+
+# Chromosome lengths in GRCh37.p13 (hg19) from Ensembl
+chromosomes <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X")
+chromosomeLength <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747,	135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566, 	155270560)
+genomeLength <- sum(chromosomeLength)
+
+# Factor and sort markers
+giantData$chr <- factor(giantData$chr, levels = chromosomes)
+giantData <- giantData[order(giantData$chr, giantData$bp), ]
+
+
+```
+
+In order to be able to customize the plot, we write a function that produces a Manhattan plot from an association data frame.
+
+```{r mh_giant}
+
+#' Returns a ggplot object with the MH for the given association data frame.
+#' 
+#' @param associationDF data frame containing the results of the association
+#' @param annotatedIds list of ids to annotate
+#' @param chrColumn name of the chromosome column
+#' @param bpColumn name of the chromosomic coordinates column
+#' @param idColumn name of the ids column
+#' @param pColumn name of the log-transformed p-values column
+#' @param snpColors vector of two colors to use for markers alternatively on chromosomes
+#' @param annotationColor color to use for annotated markers
+#' @param maxP the maximal p-value used to scale the y axis
+#' @param threshold the p-value threshold to display
+#' @param thresholdColor the color to use for the threshold
+#' 
+#' @return a ggplot object with the MH
+getMh <- function(
+  associationDF, 
+  annotatedIds = NULL,
+  chrColumn = "chr", 
+  bpColumn = "bp", 
+  idColumn = "id", 
+  pColumn = "p", 
+  snpColors = scico(n = 2, begin = 0.2, end = 0.4, palette = "grayC"), 
+  annotationColor = scico(n = 1, begin = 0.8, end = 0.8, palette = "grayC"), 
+  maxP = max(associationDF[[pColumn]]),
+  threshold = -log10(5e-8),
+  thresholdColor = "green4") {
+    
+    # Chromosome coordinates 
+    chromosomeStart <- cumsum(chromosomeLength) - chromosomeLength
+    chromosomeMiddle <- chromosomeStart + chromosomeLength / 2
+    
+    # Make data frame for plotting
+    plotDF <- data.frame(chr = associationDF[[chrColumn]],
+                         bp = associationDF[[bpColumn]],
+                         id = associationDF[[idColumn]],
+                         p = associationDF[[pColumn]],
+                         stringsAsFactors = F)
+    
+    # Get genomic coordinates
+    plotDF$x <- chromosomeStart[plotDF$chr] + plotDF$bp
+    
+    # X-axis labels
+    xLabels <- chromosomes
+    xLabelsI <- 1:length(xLabels)
+    xLabels[xLabelsI %% 2 == 0 & xLabelsI > 17] <- ""
+    
+    # Set colors
+    plotDF$color <- ifelse(as.numeric(plotDF$chr) %% 2 == 0, snpColors[1], snpColors[2])
+    plotDF$color <- factor(plotDF$color, levels = snpColors)
+    
+    # Separate background and annotation
+    annotatedI <- !is.null(annotatedIds) & plotDF$id %in% annotatedIds
+    backgroundDF <- plotDF[!annotatedI, ]
+    annotationDF <- plotDF[annotatedI, ]
+    
+    # Make plot
+    mhPlot <- ggplot() + 
+      
+      geom_hline(yintercept = threshold, col = thresholdColor, size = 0.3) + 
+      geom_point(data = backgroundDF, aes(x = x, y = p, col = color), alpha = 0.8, size = 1, stroke = 0, shape = 16) + 
+      geom_point(data = annotationDF, aes(x = x, y = p), col = annotationColor, alpha = 0.8, size = 1, stroke = 0, shape = 16) + 
+      
+      scale_y_continuous(name = "p-value [-log10]", expand = c(0, 0), limits = c(0, 1.05 * maxP)) + 
+      scale_x_continuous(name = "Chromosome", breaks = chromosomeMiddle, labels = xLabels, limits = c(0, genomeLength), expand = c(0.01, 0.01)) + 
+      scale_color_manual(values = snpColors) + 
+      
+      theme(legend.position = "none",
+                             panel.grid.minor = element_blank(),
+                             panel.grid.major.x = element_blank(),
+                             panel.grid.major.y = element_line(size = 0.3))
+    
+    return(mhPlot)
+    
+}
+
+# Make plot with annotation of markers over a threshold of -log10(5e-8)
+annotatedIds <- giantData$id[giantData$p > -log10(5e-8)]
+mhPlot <- getMh(associationDF = giantData, annotatedIds = annotatedIds)
+
+plot(mhPlot)
+
+```
+
+
 
 ### Pathway matching
 
