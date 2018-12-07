@@ -475,7 +475,7 @@ getAnimatedMh <- function(
 
 ```
 
-The animation can be started using _animate()_ or saved to file using _anim_save()_. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer, running the code below on this example failed on a server with ~64GB of RAM.
+The animation can be started using `animate()` or saved to file using `anim_save()`. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer. Running the code below on this example failed on a server with ~64 GB of RAM but worked with ~128 GB and took 3 hours to encode.
 
 ```
 
@@ -496,16 +496,15 @@ The strongest association on chromosome 16 is the FTO locus, a textbook example 
 
 ## Time-lapse MH
 
-In this section, we draw an animated Manhattan plot based on whole genome variants. In the previous section, we were already limited by the number of points in the release of the animation, here each plot contains several millions of points, so we will look towards an alternative solution. 
-
-In this example, we use the association results with BMI over the first years of life. We combine the figure below (Supplementary Figure 1 of [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255)) into a single animation.
+In this section, we draw an animated Manhattan plot based on whole genome variants. In this example, we use the association results with BMI over the first years of life. We combine the figure below (Supplementary Figure 1 of [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255)) into a single animation.
 
 ![Supp Fig 1](plots/FigS1.png "Supp Fig 1")
 
-In order to keep the memory consumption as low as when making the figure above, we compute export the different frames one by one on the fly. This is made simple by the fact that Manhattan plots of the same markers all display the same points, we just need to move them up and down. While we iterate the different frames, we build a command line that will use [magick](https://www.imagemagick.org/script/index.php) to build the gif. The code below shows how the animation was made, note that I was not allowed to share the code I wrote to produce the figure above or underlying data, so here is only the part that builds the animation. I will be happy to answer questions and comments on the [issue tracker](https://github.com/mvaudel/tutorials/issues).
+In the previous section, we were already struggling with memory consumptions with approximately 200,000 points, here each plot contains several millions of points, so we need to look towards an alternative solution to _gganimate_. In order to keep the memory consumption as low as when making the figure above, we compute export the different frames one by one on the fly. This is made simple by the fact that Manhattan plots of the same markers all display the same points, we thus just need to move them up and down. 
+
+The code below shows how the animation was made, note that I was not allowed to share the code I wrote to produce the figure above or the underlying data, so here is only the part that builds the animation. I will be happy to answer questions and comments on the [issue tracker](https://github.com/mvaudel/tutorials/issues). In short, we iterate all states of the MH and build transitions between them, saving one frame at a time. While doing so, we build a command line that uses [magick](https://www.imagemagick.org/script/index.php) to combine all frames in a gif. This is approach less generic, elegant, and powerful than gganimate, but R used only 20 GB of RAM when creating the figure, and the entire process took less than a day.
 
 ```
-
 
 #' Returns a data frame corresponding to the iterpolation between the MHs at two ages.
 #' 
