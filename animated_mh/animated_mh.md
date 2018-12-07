@@ -1,11 +1,7 @@
 Animated Manhattan Plot
 ================
 
-Manhattan and QQ plots are used to interpret the results of genome-wide association studies (GWASs). In this section, we color the Manhattan based on possible effect on pathways, like done in the plots below.
-
-![Example MH](plots/mhs.gif "Example MH")
-
-![Example QQ](plots/qqs.gif "Example QQ")
+Manhattan and QQ plots are used to interpret the results of genome-wide association studies (GWASs).
 
 Drawing a Manhattan plot
 ------------------------
@@ -195,6 +191,18 @@ print(paste("Number of pathways: ", nPathways))
 ```
 
     ## [1] "Number of pathways:  1869"
+
+We can now color all variants mapping to a given pathway.
+
+``` r
+# Make plot with annotation of markers over a threshold of -log10(5e-8)
+annotatedIds <- unique(pathwaysDF$id[pathwaysDF$topPathway == "Signal Transduction"])
+mhPlot <- getMh(associationDF = giantData, annotatedIds = annotatedIds, annotationColor = "red3")
+
+plot(mhPlot)
+```
+
+![](animated_mh_files/figure-markdown_github/mh_signal_transduction-1.png)
 
 ### Pathway order
 
@@ -447,7 +455,7 @@ getAnimatedMh <- function(
 }
 ```
 
-The animation can be started using `animate()` or saved to file using `anim_save()`. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer. Running the code below on this example failed on a server with ~64 GB of RAM but worked with ~128 GB and took two hours to encode.
+The animation can be started using `animate()` or saved to file using `anim_save()`. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer.
 
 
     animatedMH <- getAnimatedMh(associationDF = giantData, pathwaysDF = pathwaysDF, orderedPathways = orderedPathways)
