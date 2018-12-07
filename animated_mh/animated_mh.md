@@ -1,20 +1,14 @@
----
-title: "Animated Manhattan Plot"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Animated Manhattan Plot
+================
 
 Manhattan and QQ plots are used to interpret the results of genome-wide association studies (GWASs). Here we build animated gifs based on multiple Manhattan or QQ plots.
 
-## Coloring based on effect on pathways
+Coloring based on effect on pathways
+------------------------------------
 
 In this section, we color the Manhattan based on possible effect on pathways. As an example, We are going to use the results of association with BMI from the GIANT consortium. Note that here we retain only SNPs with an rs ID, and that this data set contains exome markers only.
 
-```{r input_giant}
-
+``` r
 # Read table
 giantData <- read.table(file = "resources/bmi_p-values.gz", header = T, stringsAsFactors = F, sep = "\t")
 
@@ -24,16 +18,13 @@ giantData <- giantData[giantData$SNPNAME != '-' & !is.na(giantData$Pvalue), c("C
 # Formatting
 names(giantData) <- c("chr", "bp", "id", "p")
 giantData$p <- -log10(giantData$p)
-
-
 ```
 
 A Manhattan plot displays the p-value of an association against the genomic coordinates of markers. Many packages allow drawing these, and it is quite straightforward to do using [ggplot2](https://ggplot2.tidyverse.org/). When building the plot, we will use colors to highlight specific features. Choosing colors is [less trivial than it seems](https://serialmentor.com/dataviz/color-pitfalls.html), we will use the [scico](https://github.com/thomasp85/scico) package, that is built on [palettes developed by Fabio Crameri](http://www.fabiocrameri.ch/colourmaps.php).
 
 :pencil2: Install the packages if needed, and load them.
 
-```{r packages}
-
+``` r
 # install packages if needed
 # install.packages("ggplot2")
 # install.packages("scico")
@@ -44,29 +35,24 @@ library(scico)
 
 # Set ggplot theme once and for all
 theme_set(theme_bw(base_size = 11))
-
 ```
 
 The first thing that we will need to do to build a Manhattan plot is to convert variant chromosomic coordinates into coordinates that can be aligned on an axis. For this we need to know the size of each chromosome. This can easily be obtained from [Ensembl](http://grch37.ensembl.org/Homo_sapiens/Location/Chromosome?r=1), just note that these are obviously assembly specific.
 
-```{r chr_lengths}
-
+``` r
 # Chromosome lengths in GRCh37.p13 (hg19) from Ensembl
 chromosomes <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X")
-chromosomeLength <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747,	135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566, 	155270560)
+chromosomeLength <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566,    155270560)
 genomeLength <- sum(chromosomeLength)
 
 # Factor and sort markers
 giantData$chr <- factor(giantData$chr, levels = chromosomes)
 giantData <- giantData[order(giantData$chr, giantData$bp), ]
-
-
 ```
 
 In order to be able to customize the plot, we write a function that produces a Manhattan plot from an association data frame.
 
-```{r mh_function}
-
+``` r
 #' Returns a ggplot object with the MH for the given association data frame.
 #' 
 #' @param associationDF data frame containing the results of the association
@@ -142,21 +128,19 @@ getMh <- function(
   return(mhPlot)
   
 }
-
 ```
 
-As an example, we make a Manhattan plot and highlight variants reaching p < 5e-8.
+As an example, we make a Manhattan plot and highlight variants reaching p &lt; 5e-8.
 
-```{r mh_giant}
+``` r
 # Make plot with annotation of markers over a threshold of -log10(5e-8)
 annotatedIds <- giantData$id[giantData$p > -log10(5e-8)]
 mhPlot <- getMh(associationDF = giantData, annotatedIds = annotatedIds)
 
 plot(mhPlot)
-
 ```
 
-
+![](animated_mh_files/figure-markdown_github/mh_giant-1.png)
 
 ### Pathway matching
 
@@ -164,34 +148,25 @@ In order to speculate on the effect of variants on pathways, the effect of genet
 
 :pencil2: Extract the ids of the variants to match in a single file.
 
-```{r input}
-
+``` r
 writeLines(giantData$id, "snps.txt")
-
 ```
 
 :pencil2: If it is not done already, install PathwayMatcher. The easiest is to do it using Bioconda.
 
-```
 
-conda install -c bioconda pathwaymatcher
+    conda install -c bioconda pathwaymatcher
 
-```
+:pencil2: Run PathwayMatcher on the snp list produced previously. Note that the command below is for use *via* bioconda.
 
-:pencil2: Run PathwayMatcher on the snp list produced previously. Note that the command below is for use _via_ bioconda.
 
-```
+    pathwaymatcher -i snps.txt -t rsid -o outputFolder -tlp
 
-pathwaymatcher -i snps.txt -t rsid -o outputFolder -tlp
+PathwayMatcher should produce two files named *analysis.tsv* and *search.tsv*. The search file contains the snp to pathway mapping. Note that these files can be found in the *resources* folder.
 
-```
+:pencil2: Load the *search.tsv* file.
 
-PathwayMatcher should produce two files named _analysis.tsv_ and _search.tsv_. The search file contains the snp to pathway mapping. Note that these files can be found in the _resources_ folder.
-
-:pencil2: Load the _search.tsv_ file.
-
-```{r input_pathways}
-
+``` r
 # Read table
 pathwaysDF <- read.table(file = "resources/search.tsv.gz", header = T, stringsAsFactors = F, sep = "\t", quote = "", comment.char = "")
 
@@ -207,19 +182,23 @@ topLevelPathways <- unique(pathwaysDF$topPathway)
 nPathways <- length(pathways)
 nTopLevelPathways <- length(topLevelPathways)
 print(paste("Number of top level pathways: ", nTopLevelPathways))
-print(paste("Number of pathways: ", nPathways))
-
 ```
 
+    ## [1] "Number of top level pathways:  26"
+
+``` r
+print(paste("Number of pathways: ", nPathways))
+```
+
+    ## [1] "Number of pathways:  1869"
 
 ### Pathway order
 
-In the following, in order to get a global view of manageable size on our data set, we focus on top level pathways. 
+In the following, in order to get a global view of manageable size on our data set, we focus on top level pathways.
 
 :pencil2: Look at the number of common markers between top-level pathways.
 
-```{r pathways_dist}
-
+``` r
 # Get the number of markers mapped to each pathway
 
 pathwaySnps <- list()
@@ -254,27 +233,23 @@ for (i in 1:(nTopLevelPathways-1)) {
     
   }
 }
-
 ```
 
-If we want to plot this matrix with ggplot2, we need to convert this matrix where measured variables are spread over multiple columns into a single column representation. For this, we use the _reshape2_ package.
+If we want to plot this matrix with ggplot2, we need to convert this matrix where measured variables are spread over multiple columns into a single column representation. For this, we use the *reshape2* package.
 
 :pencil2: Install the package if needed, and load it
 
-```{r reshape2}
-
+``` r
 # Install package if needed
 # install.packages("reshape2")
 
 # Load package
 library(reshape2)
-
 ```
 
 We now make a function that produces a heatmap from such a matrix.
 
-```{r heatmap_function}
-
+``` r
 #' Returns a ggplot object with the data frame plotted as heatmap.
 #' 
 #' @param matrix the matrix
@@ -311,24 +286,22 @@ getHeatMap <- function(
   return(heatMap)
   
 }
-
 ```
 
 :pencil2: Plot the heatmap.
 
-```{r heatmap}
-
+``` r
 # plot heatmap
 heatMap <- getHeatMap(matrix = pathwayOverlap)
 
 plot(heatMap)
-
 ```
+
+![](animated_mh_files/figure-markdown_github/heatmap-1.png)
 
 In the following, we are going to use the pathway overlap as a measure of the distance between pathways, and run hierarchical clustering on pathways. Hence, we order the pathways based on their overlapping SNP.
 
-```{r clustering}
-
+``` r
 # Make distance matrix
 pathwayDist <- 1 - pathwayOverlap
 
@@ -340,28 +313,24 @@ orderedPathways <- topLevelPathways[pathwayClust$order]
 heatMap <- getHeatMap(matrix = pathwayOverlap, labels = orderedPathways)
 
 plot(heatMap)
-
-
 ```
 
+![](animated_mh_files/figure-markdown_github/clustering-1.png)
 
 ### Pathway MH
 
-In the following, we plot again the Manhattan, but we color the markers matching the different pathways one after the other. For this, we create an animation using the [_gganimate_](https://github.com/thomasp85/gganimate) package.
+In the following, we plot again the Manhattan, but we color the markers matching the different pathways one after the other. For this, we create an animation using the [*gganimate*](https://github.com/thomasp85/gganimate) package.
 
-:pencil2: Install the package if needed, and load it. Note that _gganimate_ is not in CRAN so you need to install it from GitHub. See the [_gganimate_](https://github.com/thomasp85/gganimate) website for more details.
+:pencil2: Install the package if needed, and load it. Note that *gganimate* is not in CRAN so you need to install it from GitHub. See the [*gganimate*](https://github.com/thomasp85/gganimate) website for more details.
 
-```{r gganimate}
-
+``` r
 # Load package
 library(gganimate)
-
 ```
 
 Now, we extend the Manhattan plot function to create the animation.
 
-```{r animated_mh}
-
+``` r
 #' Returns a gganimate object with the MH for the given association data frame.
 #' 
 #' @param associationDF data frame containing the results of the association
@@ -472,16 +441,13 @@ getAnimatedMh <- function(
   return(mhPlot)
   
 }
-
 ```
 
-The animation can be started using _animate()_ or saved to file using _anim_save()_.
+The animation can be started using *animate()* or saved to file using *anim\_save()*.
 
-```{r create_animated_mh}
-
+``` r
 animatedMH <- getAnimatedMh(associationDF = giantData, pathwaysDF = pathwaysDF, orderedPathways = orderedPathways)
 
 # animate(animatedMH, nframes = 500, height = 900, width = 1600)
 # anim_save(filename = "pathwayMh.gif", path = "plots")
-
 ```
