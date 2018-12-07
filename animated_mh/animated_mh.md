@@ -589,6 +589,8 @@ The code below shows how the animation was made, note that I was not allowed to 
 
     system(gifCommand) # This executes the magick command
 
+*This gif does not loop, you might want to click it to restart the animation!*
+
 ![Time-lapse MH](plots/mh_time-lapse.gif "Time-lapse MH")
 
 Please note that the gif above is released under CC-BY with the same authors as [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255).
