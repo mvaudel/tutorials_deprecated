@@ -1,10 +1,11 @@
 
 
 # Load packages
-library(digest, lib.loc = lib)
-library(reshape2, lib.loc = lib)
-library(labeling, lib.loc = lib)
-library(withr, lib.loc = lib)
+library(crayon, lib.loc = "~/R")
+library(digest, lib.loc = "~/R")
+library(reshape2, lib.loc = "~/R")
+library(labeling, lib.loc = "~/R")
+library(withr, lib.loc = "~/R")
 library(ggplot2, lib.loc = "~/R")
 library(scico, lib.loc = "~/R")
 library(gganimate, lib.loc = "~/R")
