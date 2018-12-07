@@ -49,7 +49,7 @@ This short [tutorial](Functional_resources/functional_resources.md) queries Reac
 
 ![](Functional_resources/images/t2d_subnetwork-1.png)
 
-## Mahattan
+## Animated Mahattan
 
 This short [tutorial](animated_mh/animated_mh.md) shows how to draw Manhattan plots, color, and animate them.
 
