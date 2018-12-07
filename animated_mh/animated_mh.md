@@ -6,7 +6,13 @@ Manhattan and QQ plots are used to interpret the results of genome-wide associat
 Coloring based on effect on pathways
 ------------------------------------
 
-In this section, we color the Manhattan based on possible effect on pathways. As an example, We are going to use the results of association with BMI from the GIANT consortium. Note that here we retain only SNPs with an rs ID, and that this data set contains exome markers only.
+In this section, we color the Manhattan based on possible effect on pathways, like done in the plots below.
+
+![Example MH](plots/mhs.gif "Example MH")
+
+![Example QQ](plots/qqs.gif "Example QQ")
+
+As an example, We are going to use the results of association with BMI from the GIANT consortium. Note that here we retain only SNPs with an rs ID, and that this data set contains exome markers only.
 
 ``` r
 # Read table
@@ -381,8 +387,6 @@ getAnimatedMh <- function(
   # Set base colors
   baseDF$color <- ifelse(as.numeric(baseDF$chr) %% 2 == 0, snpColors[1], snpColors[2])
   
-  baseDF <- baseDF[sample(1:nrow(baseDF), 100), ]
-  
   # Get pathway colors
   pathwayColors <- scico(n = length(orderedPathways), palette = pathwayPalette)
   
@@ -422,7 +426,7 @@ getAnimatedMh <- function(
   mhPlot <- ggplot() + 
     
     geom_hline(data = thresholdDF, mapping = aes(yintercept = threshold), col = thresholdColor, size = 0.3) + 
-    geom_point(data = plotDF, mapping = aes(x = x, y = p, col = color), alpha = 0.8, size = 2, stroke = 0, shape = 16) + 
+    geom_point(data = plotDF, mapping = aes(x = x, y = p, col = color, group = id), alpha = 0.8, size = 2, stroke = 0, shape = 16) + 
     
     scale_y_continuous(name = "p-value [-log10]", expand = c(0, 0), limits = c(0, 1.05 * maxP)) + 
     scale_x_continuous(name = "Chromosome", breaks = chromosomeMiddle, labels = xLabels, limits = c(0, genomeLength), expand = c(0.01, 0.01)) + 
@@ -450,7 +454,7 @@ The animation can be started using `animate()` or saved to file using `anim_save
 
     animatedMH <- getAnimatedMh(associationDF = giantData, pathwaysDF = pathwaysDF, orderedPathways = orderedPathways)
 
-    animate(animatedMH, nframes = 500, height = 900, width = 1600)
+    animate(animatedMH, nframes = 500, height = 450, width = 800)
     anim_save(filename = "pathwayMh.gif", path = "plots")
 
 ![Pathway MH](plots/pathwayMh.gif "Pathway MH")
