@@ -475,7 +475,7 @@ getAnimatedMh <- function(
 
 ```
 
-The animation can be started using `animate()` or saved to file using `anim_save()`. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer. Running the code below on this example failed on a server with ~64 GB of RAM but worked with ~128 GB and took 3 hours to encode.
+The animation can be started using `animate()` or saved to file using `anim_save()`. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer. Running the code below on this example failed on a server with ~64 GB of RAM but worked with ~128 GB and took two hours to encode.
 
 ```
 
