@@ -105,7 +105,7 @@ getAnimatedMh <- function(
   mhPlot <- ggplot() + 
     
     geom_hline(data = thresholdDF, mapping = aes(yintercept = threshold), col = thresholdColor, size = 0.3) + 
-    geom_point(data = plotDF, mapping = aes(x = x, y = p, col = color), alpha = 0.8, size = 1, stroke = 0, shape = 16) + 
+    geom_point(data = plotDF, mapping = aes(x = x, y = p, col = color, group = id), alpha = 0.8, size = 2, stroke = 0, shape = 16) + 
     
     scale_y_continuous(name = "p-value [-log10]", expand = c(0, 0), limits = c(0, 1.05 * maxP)) + 
     scale_x_continuous(name = "Chromosome", breaks = chromosomeMiddle, labels = xLabels, limits = c(0, genomeLength), expand = c(0.01, 0.01)) + 
@@ -218,5 +218,5 @@ print(paste0(Sys.time(), " Animate"))
 # Animate
 animatedMH <- getAnimatedMh(associationDF = giantData, pathwaysDF = pathwaysDF, orderedPathways = orderedPathways)
 
-animate(animatedMH, nframes = 500, height = 900, width = 1600)
+animate(animatedMH, nframes = 500, height = 450, width = 800)
 anim_save(filename = "pathwayMh.gif", path = "plots")
