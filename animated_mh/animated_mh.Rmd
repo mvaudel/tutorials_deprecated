@@ -475,13 +475,154 @@ getAnimatedMh <- function(
 
 ```
 
-The animation can be started using _animate()_ or saved to file using _anim_save()_.
+The animation can be started using _animate()_ or saved to file using _anim_save()_. Note that the computation of the animation requires quite some memory and might not work on a standard desktop computer, running the code below on this example failed on a server with ~64GB of RAM.
 
-```{r create_animated_mh}
+```
 
 animatedMH <- getAnimatedMh(associationDF = giantData, pathwaysDF = pathwaysDF, orderedPathways = orderedPathways)
 
-# animate(animatedMH, nframes = 500, height = 900, width = 1600)
-# anim_save(filename = "pathwayMh.gif", path = "plots")
+animate(animatedMH, nframes = 500, height = 900, width = 1600)
+anim_save(filename = "pathwayMh.gif", path = "plots")
 
 ```
+
+![Pathway MH](plots/pathwayMh.gif "Pathway MH")
+
+The resulting animation colors markers based on predicted effect on pathways. It can help classifying variants and loci, or select pathways worth investing their sub-pathways for relevant functional information. 
+
+The strongest association on chromosome 16 is the FTO locus, a textbook example of the limitations of this approach: it is colored according to the pathways involving the protein coded by the FTO gene, _Alpha-ketoglutarate-dependent dioxygenase FTO_ accession Q9C0B1. These pathways are all involved in _DNA Repair_. However, there is compelling evidence that the variants in the FTO locus are influenceing BMI through complex and long-range interaction with other genes [(1)](#references). The biochemical mechanism underlying the BMI increase may therefore have nothing to do with _DNA Repair_. This example shows that our understanding of the effect of variants on genes, proteins, and pathways is very limited, and the results of such analyses must be interpreted with the greatest care.
+
+
+
+## Time-lapse MH
+
+In this section, we draw an animated Manhattan plot based on whole genome variants. In the previous section, we were already limited by the number of points in the release of the animation, here each plot contains several millions of points, so we will look towards an alternative solution. 
+
+In this example, we use the association results with BMI over the first years of life. We combine the figure below (Supplementary Figure 1 of [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255)) into a single animation.
+
+![Supp Fig 1](plots/FigS1.png "Supp Fig 1")
+
+In order to keep the memory consumption as low as when making the figure above, we compute export the different frames one by one on the fly. This is made simple by the fact that Manhattan plots of the same markers all display the same points, we just need to move them up and down. While we iterate the different frames, we build a command line that will use [magick](https://www.imagemagick.org/script/index.php) to build the gif. The code below shows how the animation was made, note that I was not allowed to share the code I wrote to produce the figure above or underlying data, so here is only the part that builds the animation. I will be happy to answer questions and comments on the [issue tracker](https://github.com/mvaudel/tutorials/issues).
+
+```
+
+
+#' Returns a data frame corresponding to the iterpolation between the MHs at two ages.
+#' 
+#' @param associationDF Association data frame at a given age with id, chr, pos, and p
+#' @param age0 the reference age
+#' @param age1 the next age
+#' @param x the level of interpolation between 0 and 1
+#' 
+#' @return a grob of the stacked MHs with annotation
+getInterpolation <- function(associationDF, age0, age1, x) {
+    
+    associationDF0 <- associationDF[associationDF$age == age0, c("id", "chr", "pos", "p")]
+    names(associationDF0) <- c("id", "chr", "pos", "p0")
+    
+    associationDF1 <- associationDF[associationDF$age == age1, c("id", "p")]
+    names(associationDF1) <- c("id", "p1")
+    
+    associationDFI <- merge(associationDF0, associationDF1, by = "id")
+    
+    associationDFI$deltaP <- associationDFI$p1 - associationDFI$p0
+    
+    associationDFI$easeP <- easing(x) * associationDFI$deltaP # Here as easing function I used tanh
+    
+    associationDFI$p <- associationDFI$p0 + associationDFI$easeP
+    
+    associationDFI <- associationDFI[, c("id", "chr", "pos", "p")]
+    
+    return(associationDFI)
+    
+}
+
+# Export frames
+
+print(paste(Sys.time(), " Building plot", sep = ""))
+
+maxP <- max(associationDF$p, -log10(5e-8))
+
+gifCommand <- "convert" # Note: for windows you might need to add path\magick.exe at the beginning
+
+for (i in 1:length(mhIndexes)) { # mhIndexes is the number of states to plot
+    
+    associationDFI <- associationDF[associationDF$age == i, ] # here associationDF contains the association result, selecting a given age returns an MH at a given age
+    
+    plotGrob <- getMhGrob(associationDF = associationDFI, topHitsDF = topHitsDF, maxP = maxP, title = timePoints[i], titleColor = "black") # This builds an mh at a given age
+    
+    # Export frame
+    
+    imagePath <- file.path(tempFolder, paste0(ageI, ".png"))
+    
+    png(filename = imagePath, pointsize = 12, height = gifHeight, width = gifWidth, units = gifUnit, res = gifResolution)
+    grid.draw(plotGrob)
+    dummy <- dev.off()
+    
+    # Add the frame to the command
+    
+    gifCommand <- paste(gifCommand, "-delay", "100", imagePath, sep = ' ') # The delay function sets how long the frame will be displayed.
+    
+    
+    # If before the last, make transition frames
+    
+    if (i < length(zbmiIndexes)) {
+        
+        for (j in 1:19) { # We use 19 transition frames
+            
+            if (j <= 10) {
+                
+                title <- timePoints[i]
+                
+            } else {
+                
+                title <- timePoints[i+1]
+                
+            }
+            
+            x <- j / 20
+            
+            associationDFI <- getInterpolation(associationDF = associationDF, age0 = ageI, age1 = ageIPlusOne, x = x) # This function interpolates the p-values between time points.
+            
+            plotGrob <- getMhGrob(associationDF = associationDFI, topHitsDF = topHitsDF, maxP = maxP, title = title, titleColor = titleGradient[j]) # Plot the interpolated MH. The title switches from previous to next age following a black-white-black gradient during the transition.
+    
+            # Export frame
+            
+            imagePath <- file.path(tempFolder, paste0(ageI, "_", j, ".png"))
+            
+            png(filename = imagePath, pointsize = 12, height = gifHeight, width = gifWidth, units = gifUnit, res = gifResolution)
+            grid.draw(plotGrob)
+            dummy <- dev.off()
+    
+            # Add the frame to the command
+            
+            gifCommand <- paste(gifCommand, "-delay", "0.5", imagePath, sep = ' ')
+            
+        }
+    }
+}
+
+# Set output file
+
+outputFile <- file.path(plotFolder, "mh_time-lapse.gif")
+
+gifCommand <- paste(gifCommand, "-loop", "1", outputFile, sep = ' ')
+
+
+## Build gif
+
+print(paste(Sys.time(), " Building gif", sep = ""))
+
+system(gifCommand) # This executes the magick command
+
+```
+
+![Time-lapse MH](plots/mh_time-lapse.gif "Time-lapse MH")
+
+Please note that the gif above is released under CC-BY with the same authors as [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255).
+
+
+## References
+
+(1) [Scrutinizing the FTO locus: compelling evidence for a complex, long-range regulatory context](https://www.ncbi.nlm.nih.gov/pubmed/26340902)
+
