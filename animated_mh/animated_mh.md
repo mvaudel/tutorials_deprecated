@@ -1,16 +1,14 @@
 Animated Manhattan Plot
 ================
 
-Manhattan and QQ plots are used to interpret the results of genome-wide association studies (GWASs). Here we build animated gifs based on multiple Manhattan or QQ plots.
-
-Coloring based on effect on pathways
-------------------------------------
-
-In this section, we color the Manhattan based on possible effect on pathways, like done in the plots below.
+Manhattan and QQ plots are used to interpret the results of genome-wide association studies (GWASs). In this section, we color the Manhattan based on possible effect on pathways, like done in the plots below.
 
 ![Example MH](plots/mhs.gif "Example MH")
 
 ![Example QQ](plots/qqs.gif "Example QQ")
+
+Drawing a Manhattan plot
+------------------------
 
 As an example, We are going to use the results of association with BMI from the GIANT consortium. Note that here we retain only SNPs with an rs ID, and that this data set contains exome markers only.
 
