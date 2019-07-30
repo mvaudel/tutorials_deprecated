@@ -26,7 +26,7 @@ MaxQuant [(1)](#references) and Skyline [(2)](#references) are reference tools f
 
 ## Data
 
-The dataset used for this tutorial is the same as in the _Proteomics Data_ chapter. It is freely available through the ProteomeXchange [(3)](#references) consortium via the PRIDE [(4)](#references) partner repository under the accession number PXD000441.
+The dataset used for this tutorial is the same as in the _Proteomics Data_ chapter. It is freely available through the ProteomeXchange [(3)](#references) consortium via the PRIDE [(4)](#references) partner repository under the accession number PXD001819.
 
 Briefly, the authors spiked a mix of proteins called the Universal Proteomics Standard (UPS) in a background of yeast proteins. The UPS proteins are spiked at different concentrations between samples while the yeast proteins stay the same. The summary table of the quantification results is available in the [resources](resources/Supplementary Table 1.xlsx) folder.
 
