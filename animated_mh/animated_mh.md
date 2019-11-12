@@ -472,11 +472,11 @@ The strongest association on chromosome 16 is the FTO locus, a textbook example 
 Time-lapse MH
 -------------
 
-In this section, we draw an animated Manhattan plot based on whole genome variants. In this example, we use the association results with BMI over the first years of life. We combine the figure below (Supplementary Figure 1 of [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255)) into a single animation.
+In this section, we draw an animated Manhattan plot based on whole genome variants. In this example, we use the association results with BMI over the first eight years of life. We combine the figure below (Supplementary Figure 1 of [this preprint](https://www.biorxiv.org/content/early/2018/11/25/478255)) into a single animation.
 
 ![Supp Fig 1](plots/FigS1.png "Supp Fig 1")
 
-In the previous section, we were already struggling with memory consumptions with approximately 200,000 points, here each plot contains several millions of points, so we need to look towards an alternative solution to *gganimate*. In order to keep the memory consumption as low as when making the figure above, we compute export the different frames one by one on the fly. This is made simple by the fact that Manhattan plots of the same markers all display the same points, we thus just need to move them up and down.
+In the previous section, we were already struggling with memory consumption with approximately 200,000 points, here each plot contains several millions of points, so we need to look towards an alternative solution to *gganimate*. In order to keep the memory consumption as low as when making the figure above, we compute export the different frames one by one on the fly. This is made simple by the fact that Manhattan plots of the same markers all display the same points, we thus just need to move them up and down.
 
 The code below shows how the animation was made, note that I was not allowed to share the code I wrote to produce the figure above or the underlying data, so here is only the part that builds the animation. I will be happy to answer questions and comments on the [issue tracker](https://github.com/mvaudel/tutorials/issues). In short, we iterate all states of the MH and build transitions between them, saving one frame at a time. While doing so, we build a command line that uses [magick](https://www.imagemagick.org/script/index.php) to combine all frames in a gif. This is approach less generic, elegant, and powerful than gganimate, but R used only 20 GB of RAM when creating the figure, and the entire process took less than a day.
 
