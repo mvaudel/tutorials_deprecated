@@ -1,0 +1,428 @@
+---
+title: "GWAS_Introduction_qc"
+author: "Marc Vaudel"
+date: '2022-05-23'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GWAS data introduction and QC
+
+This notebook provides and introduction to conducting genome-wide association studies and critically analyze the results.
+
+## Libraries
+
+We will need the following libraries. If they are not availble on your system, use the `ìnstall_packages` command to install them.
+
+```{r }
+
+library(janitor) # A package to clean dirty data
+library(tidyr) # A package to tidy data
+library(dplyr) # A package to manipulate data
+library(parallel) # A package to run tasks in parallel
+library(glue) # A package to glue variables in strings
+
+library(ggplot2) # A package to plot data
+
+library(conflicted) # A package to manage namespace conflicts
+
+# Resolve conflicting function names
+conflict_prefer("filter", "dplyr")
+
+# Set the theme for plots
+theme_set(theme_bw(base_size = 13))
+
+```
+
+
+## Load data
+
+Load the example data available at this [link](https://drive.google.com/file/d/1hdESYbyRrfBZALTgV3h4TSJ82Od-bShv/view?usp=sharing).
+
+```{r }
+
+file_path <- "/home/marc/Projects/tutorials/data/lm_example.gz"
+
+start_time <- Sys.time()
+
+snp_data <- read.table(
+  file = file_path,
+  sep = "\t",
+  header = T,
+  stringsAsFactors = F
+) %>% 
+  clean_names()
+
+end_time <- Sys.time()
+
+processing_time <- difftime(end_time, start_time)
+
+phenotypes <- c("pheno_a", "pheno_b", "pheno_c", "pheno_d")
+
+```
+
+The file was imported in `r round(processing_time[[1]], 1)` `r units(processing_time)``. 
+
+_How can we reduce the time spent reading files?_
+
+This data set, courtesy of Dr. Bram Burger, contains simulated genotypes and phenotypes as a table:
+- chromosome: the chromosome where the variant is located
+- position: the position of the variant, here we have only one variant per position
+- genotype: the number of alternative alleles for a given variant in a given individual
+- sample: the identifier of the individual
+- pheno_x: the phenotypic values
+
+There is one variant at every genomic position, making `r length(unique(snp_data$position))` variants for `r length(unique(snp_data$sample))` individuals.
+
+_How does this compare to GWAS studies you might have seen in the literature? How long would it take to load a similar file containing ten million variants?_
+
+## Genotypes
+
+Select a position, for the variant at this position, compute the number of participants with a given genotype.
+
+```{r }
+
+sampled_position <- sample(snp_data$position, 1)
+
+pos_data <- snp_data %>% 
+  filter(
+    position == sampled_position
+  )
+
+print(
+  glue("# Number of participants for a given genotype for the variant at position {sampled_position}")
+)
+
+table(pos_data$genotype)
+
+```
+
+Estimate the alternative allele frequency: `r round(100 * sum(pos_data$genotype) / (2 * nrow(pos_data)), 1)` %.
+
+Build a histogram of alternative allele frequencies for this data set.
+
+```{r }
+
+allele_frequencies <- snp_data %>% 
+  group_by(
+    position
+  ) %>% 
+  summarize(
+    alternative_allele_frequency = 100 * sum(genotype) / (2 * n())
+  )
+
+ggplot() +
+  geom_histogram(
+    data = allele_frequencies,
+    mapping = aes(
+      x = alternative_allele_frequency
+    ),
+    col = "darkblue",
+    fill = "darkblue",
+    alpha = 0.1,
+    bins = 20
+  ) +
+  scale_x_continuous(
+    name = "Alternative allele frequency [%]"
+  ) +
+  scale_y_continuous(
+    name = "# variants",
+    expand = expansion(
+            mult = c(0, 0.05)
+        )
+  )
+
+```
+
+The alternative allele frequencies in this data set are comprised between `r min(allele_frequencies$alternative_allele_frequency)` % and `r max(allele_frequencies$alternative_allele_frequency)` %.
+
+_Would you filter out some of these variants prior to analysis?_
+
+## Phenotypes
+
+_What kind of variables can be used for phenotypes in GWASes?_
+
+Build a histogram of the different phenotypes available in this data set.
+
+```{r }
+
+pheno_data <- pos_data %>% # The phenotypes are the same for all variants, we just need the data from one of them
+  pivot_longer(
+    cols = starts_with("pheno_"),
+    names_prefix = "pheno_"
+  ) %>% 
+  select(
+    sample, pheno = name, value
+  )
+
+ggplot() +
+  geom_histogram(
+    data = pheno_data,
+    mapping = aes(
+      x = value
+    ),
+    col = "darkgreen",
+    fill = "darkgreen",
+    alpha = 0.1,
+    bins = 20
+  ) +
+  scale_x_continuous(
+    name = "Phenotype value",
+    breaks = c(-5:5)
+  ) +
+  scale_y_continuous(
+    name = "# participants",
+    expand = expansion(
+            mult = c(0, 0.05)
+        )
+  ) + 
+  facet_wrap(
+    ~ pheno
+  )
+
+```
+
+_How do you interpret these distributions? How would you process phenotypes prior to a GWAS?_
+
+## Genotype to phenotype association
+
+For the variant at the position selected below, look at the association between `genotype` and `pheno_a`.
+
+```{r }
+
+association_results <- lm(
+  data = pos_data,
+  formula = pheno_a ~ genotype
+)
+
+print(
+  glue("# Association results at position {sampled_position}")
+)
+
+summary(association_results)
+
+```
+
+_How do you interpret these results? Is there a significant association?_
+
+Plot the phenotypes against genotypes at this position.
+
+```{r }
+
+ggplot() +
+  theme_bw() +
+  geom_hline(
+    yintercept = 0
+  ) +
+  geom_point(
+    data = pos_data,
+    mapping = aes(
+      x = genotype,
+      y = pheno_a
+    ),
+    alpha = 0.1
+  ) +
+  geom_smooth(
+    data = pos_data,
+    mapping = aes(
+      x = genotype,
+      y = pheno_a
+    ),
+    method = "lm",
+    formula = "y ~ x"
+  ) +
+  scale_x_continuous(
+    name = "Genotype",
+    breaks = c(0, 1, 2)
+  ) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+```
+
+_How would you expect the plot to look like for a significant association?_
+
+Run the association for all variants and all phenotypes.
+
+```{r }
+
+#' Run a linear model for the variant at the given position against the given phenotype.
+#' 
+#' @param position The position of the variant.
+#' @param snp_data The data frame containing the genotypes and phenotypes.
+#' @return The coefficients of the regression as a data frame.
+lm_function <- function(position, snp_data, pheno) {
+  
+  variant_data <- snp_data[snp_data$pos == position, ]
+  
+  lm_results <- lm(
+            formula = glue("{pheno} ~ genotype"),
+            data = variant_data
+        )
+  
+  lm_summary <- summary(lm_results)
+        
+  coefficients <- data.frame(
+    position = position,
+    phenotype = pheno,
+    beta = lm_summary$coef["genotype", "Estimate"],
+    se = lm_summary$coef["genotype", "Std. Error"],
+    p = lm_summary$coef["genotype", "Pr(>|t|)"],
+    n = nrow(variant_data),
+    stringsAsFactors = F
+  )
+    
+  
+  return(coefficients)
+  
+}
+
+# Calculate the number of cores
+no_cores <- max(detectCores() - 1, 1)
+
+# Initiate a cluster to run functions on multiple cores
+cluster <- makeCluster(no_cores)
+
+clusterExport(cluster, "snp_data")
+clusterExport(cluster, "lm_function")
+clusterExport(cluster, "glue")
+
+# Process phenotypes one after the other
+
+start_time <- Sys.time()
+
+lm_results <- NULL
+
+for (phenotype in phenotypes) {
+  
+  print(glue("{Sys.time()} - Processing {phenotype}"))
+  
+  clusterExport(cluster, "phenotype")
+  
+  # Process variants in parallel
+  
+  pheno_results <- parLapply(
+    cl = cluster, 
+    X = sort(unique(snp_data$pos)), 
+    fun = function (position) lm_function(position, snp_data, phenotype) 
+  )
+  
+  # Merge into a single table
+  
+  pheno_results <- do.call("rbind", pheno_results)
+  
+  lm_results <- rbind(lm_results, pheno_results)
+  
+}
+
+end_time = Sys.time()
+
+stopCluster(cluster)
+
+processing_time = difftime(end_time, start_time)
+
+```
+
+The analysis of these `r length(unique(snp_data$position))` variants and `r length(phenotypes)` phenotypes using  `r no_cores` threads was conducted in `r round(processing_time[[1]], 1)` `r units(processing_time)`. 
+
+_How long would it take to process one phenotype over the entire genome? How can we speed up this process?_
+
+Plot the p-value against location for all phenotypes.
+
+```{r }
+
+lm_results$phenoFactor <- factor((lm_results$phenotype), levels = phenotypes)
+
+levels(lm_results$phenoFactor) <- c("a", "b", "c", "d")
+
+ggplot() +
+  geom_point(
+    data = lm_results,
+    mapping = aes(
+      x = position,
+      y = -log10(p)
+    )
+  ) +
+  scale_x_continuous(
+    "Position [bp]"
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]",
+    expand = expansion(
+            mult = c(0, 0.1)
+        )
+  ) +
+  facet_grid(
+    phenotype ~ .
+  )
+
+```
+
+Compute and plot the association of phenotype b with genotypes for the variant of strongest association.
+
+```{r }
+
+best_pos <- lm_results$position[which.max(-log10(lm_results$p))]
+
+best_pos_data <- snp_data %>% 
+  filter(
+    position == best_pos
+  )
+
+association_results <- lm(
+  data = best_pos_data,
+  formula = pheno_b ~ genotype
+)
+
+print(
+  glue("# Association results at position {sampled_position}")
+)
+
+summary(association_results)
+
+```
+
+```{r }
+
+ggplot() +
+  theme_bw() +
+  geom_hline(
+    yintercept = 0
+  ) +
+  geom_point(
+    data = pos_data,
+    mapping = aes(
+      x = genotype,
+      y = pheno_b
+    ),
+    alpha = 0.1
+  ) +
+  geom_smooth(
+    data = pos_data,
+    mapping = aes(
+      x = genotype,
+      y = pheno_b
+    ),
+    method = "lm",
+    formula = "y ~ x"
+  ) +
+  scale_x_continuous(
+    name = "Genotype",
+    breaks = c(0, 1, 2)
+  ) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+```
+
+_What do you think about the strength of the association? How can we reach genome-wide significance?_
+
+
+
