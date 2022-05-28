@@ -425,4 +425,235 @@ ggplot() +
 _What do you think about the strength of the association? How can we reach genome-wide significance?_
 
 
+## Filter by minor allele count
 
+Remove variants with a minor allele count (mac) below 200.
+
+```{r }
+
+mac_threshold <- 200
+
+mac <- snp_data %>% 
+  group_by(
+    position
+  ) %>% 
+  summarize(
+    mac = ifelse(sum(genotype) > n(), 2 * n() - sum(genotype), sum(genotype))
+  )
+
+variants_excluded <- mac$position[mac$mac < mac_threshold]
+variants_kept <- mac$position[mac$mac >= mac_threshold]
+
+print(glue(("{length(variants_excluded)} variants excluded ({100 * length(variants_excluded)/(length(variants_kept) + length(variants_excluded))} %) using a mac threshold of {mac_threshold}.")))
+
+lm_results <- lm_results[lm_results$position %in% variants_kept, ]
+
+```
+
+_Why filter out these variants? Why use a minor allele count (mac) intead of a minor allele frequency (maf) threshold?_
+
+> Note that this step is usually done prior to running the GWAS. It is important to log the variants excluded.
+
+Plot again the p-value per position.
+
+```{r }
+
+ggplot() +
+  geom_point(
+    data = lm_results,
+    mapping = aes(
+      x = position,
+      y = -log10(p)
+    )
+  ) +
+  scale_x_continuous(
+    "Position [bp]"
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]",
+    expand = expansion(
+            mult = c(0, 0.1)
+        )
+  ) +
+  facet_grid(
+    phenotype ~ .
+  )
+
+```
+
+_Do you notice any difference? What other variable can we use to filter and reduce the prevalence of spurious annotation?_
+
+
+## Accounting for batches, covariates, and admixture
+
+The genotypes we acquired and QCed in different batches. Our phenotypes are known to be associated with age and sex, with differences between males and females. Also, our population presents some level of admixture.
+
+Convert the sex as number
+
+```{r }
+
+snp_data$sex_number <- as.numeric(factor(snp_data$sex, levels = c("M", "F")))
+
+print(glue("Prevalence of sexes in percent:"))
+100 * table(snp_data$sex_number)/nrow(snp_data)
+
+```
+
+_Can we do the same for batches?_
+
+```{r }
+
+print(glue("Prevalence of batches in percent:"))
+100 * table(snp_data$batch)/nrow(snp_data)
+
+```
+
+Convert the batch value using one-hot encoding.
+
+```{r }
+
+for(batch in unique(snp_data$batch)) {
+  
+  snp_data[[batch]] <- ifelse(snp_data$batch == batch, 1, 0)
+
+  print(glue("Prevalence of {batch}: {100 * sum(snp_data[[batch]])/nrow(snp_data)} %"))
+  
+}
+
+```
+
+Include age, sex, batches, and ten PCs to the model and rerun.
+
+```{r }
+
+#' Run a linear model for the variant at the given position against the given phenotype.
+#' 
+#' @param position The position of the variant.
+#' @param snp_data The data frame containing the genotypes and phenotypes.
+#' @return The coefficients of the regression as a data frame.
+lm_function <- function(position, snp_data, pheno) {
+  
+  variant_data <- snp_data[snp_data$pos == position, ]
+  
+  lm_results <- lm(
+            formula = glue("{pheno} ~ genotype + sex_number + age + sex_number * age + batch_1 + batch_2 + batch_3 + pc1 + pc2 + pc3 + pc4 + pc5 + pc6 + pc7 + pc8 + pc9 + pc10"),
+            data = variant_data
+        )
+  
+  lm_summary <- summary(lm_results)
+        
+  coefficients <- data.frame(
+    position = position,
+    phenotype = pheno,
+    beta = lm_summary$coef["genotype", "Estimate"],
+    se = lm_summary$coef["genotype", "Std. Error"],
+    p = lm_summary$coef["genotype", "Pr(>|t|)"],
+    n = nrow(variant_data),
+    stringsAsFactors = F
+  )
+    
+  
+  return(coefficients)
+  
+}
+
+# Calculate the number of cores
+no_cores <- max(detectCores() - 1, 1)
+
+# Initiate a cluster to run functions on multiple cores
+cluster <- makeCluster(no_cores)
+
+clusterExport(cluster, "snp_data")
+clusterExport(cluster, "lm_function")
+clusterExport(cluster, "glue")
+
+# Process phenotypes one after the other
+
+start_time <- Sys.time()
+
+lm_results <- NULL
+
+for (phenotype in phenotypes) {
+  
+  print(glue("{Sys.time()} - Processing {phenotype}"))
+  
+  clusterExport(cluster, "phenotype")
+  
+  # Process variants in parallel
+  
+  pheno_results <- parLapply(
+    cl = cluster, 
+    X = sort(unique(snp_data$pos)), 
+    fun = function (position) lm_function(position, snp_data, phenotype) 
+  )
+  
+  # Merge into a single table
+  
+  pheno_results <- do.call("rbind", pheno_results)
+  
+  lm_results <- rbind(lm_results, pheno_results)
+  
+}
+
+end_time = Sys.time()
+
+stopCluster(cluster)
+
+processing_time = difftime(end_time, start_time)
+
+```
+
+The analysis of these `r length(unique(snp_data$position))` variants and `r length(phenotypes)` phenotypes using  `r no_cores` threads was conducted in `r round(processing_time[[1]], 1)` `r units(processing_time)`.
+
+Plot again the p-value per position.
+
+```{r }
+
+ggplot() +
+  geom_point(
+    data = lm_results,
+    mapping = aes(
+      x = position,
+      y = -log10(p)
+    )
+  ) +
+  scale_x_continuous(
+    "Position [bp]"
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]",
+    expand = expansion(
+            mult = c(0, 0.1)
+        )
+  ) +
+  facet_grid(
+    phenotype ~ .
+  )
+
+```
+Look at the association summary stats for the variant of strongest association.
+
+```{r }
+
+best_pos <- lm_results$position[which.max(-log10(lm_results$p))]
+
+best_pos_data <- snp_data %>% 
+  filter(
+    position == best_pos
+  )
+
+association_results <- lm(
+  data = best_pos_data,
+  formula = pheno_b ~ genotype + sex_number + age + sex_number * age + batch_1 + batch_2 + batch_3 + pc1 + pc2 + pc3 + pc4 + pc5 + pc6 + pc7 + pc8 + pc9 + pc10
+)
+
+print(
+  glue("# Association results at position {sampled_position}")
+)
+
+summary(association_results)
+
+```
+
+
+_Do you notice any difference?_
