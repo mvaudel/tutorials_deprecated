@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## GWAS data introduction and QC
 
-This notebook provides and introduction to conducting genome-wide association studies and critically analyze the results.
+This notebook provides and introduction to conducting genome-wide association studies and critically inspect the results.
 
 ## Libraries
 
@@ -131,8 +131,8 @@ ggplot() +
   scale_y_continuous(
     name = "# variants",
     expand = expansion(
-            mult = c(0, 0.05)
-        )
+      mult = c(0, 0.05)
+    )
   )
 
 ```
@@ -176,8 +176,8 @@ ggplot() +
   scale_y_continuous(
     name = "# participants",
     expand = expansion(
-            mult = c(0, 0.05)
-        )
+      mult = c(0, 0.05)
+    )
   ) + 
   facet_wrap(
     ~ pheno
@@ -261,12 +261,12 @@ lm_function <- function(position, snp_data, pheno) {
   variant_data <- snp_data[snp_data$pos == position, ]
   
   lm_results <- lm(
-            formula = glue("{pheno} ~ genotype"),
-            data = variant_data
-        )
+    formula = glue("{pheno} ~ genotype"),
+    data = variant_data
+  )
   
   lm_summary <- summary(lm_results)
-        
+  
   coefficients <- data.frame(
     position = position,
     phenotype = pheno,
@@ -276,7 +276,7 @@ lm_function <- function(position, snp_data, pheno) {
     n = nrow(variant_data),
     stringsAsFactors = F
   )
-    
+  
   
   return(coefficients)
   
@@ -354,8 +354,8 @@ ggplot() +
   scale_y_continuous(
     name = "p-value [-log10]",
     expand = expansion(
-            mult = c(0, 0.1)
-        )
+      mult = c(0, 0.1)
+    )
   ) +
   facet_grid(
     phenotype ~ .
@@ -472,8 +472,8 @@ ggplot() +
   scale_y_continuous(
     name = "p-value [-log10]",
     expand = expansion(
-            mult = c(0, 0.1)
-        )
+      mult = c(0, 0.1)
+    )
   ) +
   facet_grid(
     phenotype ~ .
@@ -515,7 +515,7 @@ Convert the batch value using one-hot encoding.
 for(batch in unique(snp_data$batch)) {
   
   snp_data[[batch]] <- ifelse(snp_data$batch == batch, 1, 0)
-
+  
   print(glue("Prevalence of {batch}: {100 * sum(snp_data[[batch]])/nrow(snp_data)} %"))
   
 }
@@ -536,12 +536,12 @@ lm_function <- function(position, snp_data, pheno) {
   variant_data <- snp_data[snp_data$pos == position, ]
   
   lm_results <- lm(
-            formula = glue("{pheno} ~ genotype + sex_number + age + sex_number * age + batch_1 + batch_2 + batch_3 + pc1 + pc2 + pc3 + pc4 + pc5 + pc6 + pc7 + pc8 + pc9 + pc10"),
-            data = variant_data
-        )
+    formula = glue("{pheno} ~ genotype + sex_number + age + sex_number * age + batch_1 + batch_2 + batch_3 + pc1 + pc2 + pc3 + pc4 + pc5 + pc6 + pc7 + pc8 + pc9 + pc10"),
+    data = variant_data
+  )
   
   lm_summary <- summary(lm_results)
-        
+  
   coefficients <- data.frame(
     position = position,
     phenotype = pheno,
@@ -551,7 +551,7 @@ lm_function <- function(position, snp_data, pheno) {
     n = nrow(variant_data),
     stringsAsFactors = F
   )
-    
+  
   
   return(coefficients)
   
@@ -623,8 +623,8 @@ ggplot() +
   scale_y_continuous(
     name = "p-value [-log10]",
     expand = expansion(
-            mult = c(0, 0.1)
-        )
+      mult = c(0, 0.1)
+    )
   ) +
   facet_grid(
     phenotype ~ .
@@ -663,3 +663,200 @@ Multiple tools allow running a GWAS. An example of script using [regenie](rgcgit
 
 _What are the different rules? Do you recognize some options from the above example?_
 
+## Inspecting GWAS summary statistics
+
+Load results from the birth weight GWAS available [TODO!]
+
+```{r }
+
+file_path <- "/home/marc/Projects/tutorials/data/Fetal_BW_European_meta.NG2019.txt.gz"
+
+gwas_results <- read.table(
+  file = file_path,
+  header = T,
+  sep = " ",
+  stringsAsFactors = F
+) %>% 
+  clean_names()
+
+```
+
+_Do you understand the meaning of the different columns? Is there anything that you find surprising?_
+
+Build a Manhattan plot. Note: there are dedicated packages that can do this but for the sake of the exercise we will write down the code.
+
+```{r }
+
+# Chromosome lengths in GRCh37.p13 (hg19) from Ensembl
+
+chromosomes <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X")
+chromosomeLength <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747,	135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566, 	155270560)
+genomeLength <- sum(chromosomeLength)
+chromosomeStart <- cumsum(chromosomeLength) - chromosomeLength
+chromosomeMiddle <- chromosomeStart + chromosomeLength / 2
+
+# Arrange for plotting
+
+plot_data <- gwas_results %>%
+  mutate(
+    logP = -log10(p)
+  ) %>% 
+  arrange(
+    logP
+  ) %>%
+  mutate(
+    chromosomeNumber = as.numeric(ifelse(chr == 'X', 23, chr)),
+    x = chromosomeStart[chromosomeNumber] + pos,
+    color = factor(chromosomeNumber %% 2, levels = 0:1)
+  ) %>%
+  arrange(
+    chromosomeNumber, logP, pos
+  )
+
+maxP <- max(plot_data$logP)
+
+# Colors
+
+mhColor1 <- "grey20"
+mhColor2 <- "grey40"
+colors <- c(mhColor1, mhColor2)
+
+
+# Chromosome labels
+
+xLabels <- 1:22
+xLabels[xLabels %% 2 == 0 & xLabels > 17] <- ""
+xLabels <- c(xLabels, "X")
+
+# y axis
+
+maxY <- 5 * ceiling(max(plot_data$logP / 5))
+maxY <- max(maxY, 10)
+
+yBreaks <- c(0, 5, -log10(5e-8))
+yLabels <- c("", 5, round(-log10(5e-8), digits = 1))
+
+lastBreak <- floor(max(maxY / 10))
+
+if (lastBreak > 0) {
+  
+  newBreaks <- 10*(1:lastBreak)
+  
+  while(length(newBreaks) > 3) {
+    
+    newBreaks <- newBreaks[c(T, F)]
+    
+  }
+  
+  yBreaks <- c(yBreaks, newBreaks)
+  yLabels <- c(yLabels, round(newBreaks, digits = 1))
+  
+}
+
+
+# Build plot
+ggplot(
+  data = plot_data
+) + 
+  geom_hline(
+    yintercept = -log10(5e-8), 
+    col = "green4", 
+    size = 0.3
+  ) + 
+  geom_point(
+    aes(
+      x = x, 
+      y = logP, 
+      col = color
+    ), 
+    size = 1
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]", 
+    breaks = yBreaks, 
+    labels = yLabels, 
+    expand = expansion(
+      mult = c(0, 0.05)
+    ), 
+    limits = c(0, maxY)
+  ) + 
+  scale_x_continuous(
+    name = "Chromosome", 
+    breaks = chromosomeMiddle, 
+    labels = xLabels, 
+    limits = c(0, genomeLength), 
+    expand = expansion(
+      mult = 0.01
+    )
+  ) + 
+  scale_color_manual(
+    values = colors
+  ) + 
+  theme(
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(size = 0.3),
+    strip.background = element_rect(
+      fill = "grey99"
+    )
+  )
+
+```
+
+
+Build a QQ plot. Note: there are dedicated packages that can do this but for the sake of the exercise we will write down the code.
+
+```{r }
+
+# Compute expected p-values
+
+
+plot_data <- gwas_results %>%
+  mutate(
+    logP = -log10(p)
+  ) %>% 
+        arrange(
+            logP
+        ) %>% 
+        mutate(
+            expectedLogP = sort(-log10(ppoints(n = n())))
+        )
+    
+    # Axis
+    
+    maxValue <- max(plot_data$logP, plot_data$expectedLogP, 10)
+    
+    
+    # Build plot
+    ggplot(
+        data = plot_data
+    ) + 
+        geom_abline(
+            slope = 1,
+            intercept = 0,
+            linetype = "dotted"
+        ) +
+        geom_point(
+            mapping = aes(
+                x = expectedLogP,
+                y = logP
+            ),
+            size = 1
+        ) +
+        scale_y_continuous(
+            name = "p-value [-log10]", 
+            limits = c(0, maxValue),
+            expand = expansion(
+                mult = 0.02
+            )
+        ) +
+        scale_x_continuous(
+            name = "Expected p-value [-log10]",
+            limits = c(0, maxValue),
+            expand = expansion(
+                mult = 0.02
+            )
+        )
+
+```
