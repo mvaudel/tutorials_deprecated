@@ -655,5 +655,11 @@ summary(association_results)
 
 ```
 
-
 _Do you notice any difference?_
+
+## Running a GWAS taking into account relatedness
+
+Multiple tools allow running a GWAS. An example of script using [regenie](rgcgithub.github.io/regenie/) is available at [resources/run_regenie.snake](resources/run_regenie.snake).
+
+_What are the different rules? Do you recognize some options from the above example?_
+

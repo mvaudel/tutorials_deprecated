@@ -1,0 +1,224 @@
+import os
+import json
+
+##
+#
+# This script runs regenie. It is adapted from a script by Pol Sole-Navais (https://github.com/psnavais).
+#
+# Commands to execute from the repository folder:
+# conda activate snakemake
+# snakemake --snakefile src/regenie/run_regenie.snake --cores 24 --use-conda --rerun-incomplete
+##
+
+
+# Analysis
+suffix = '22-03-01'
+
+# Phenotypes
+phenoFolder = # Write here the path to the folder containing the phenotype files, the script expects one phenotype file per population
+phenoStandardizationFile = os.path.join(phenoFolder, 'standardization_details.json') # Configuration file containing the covariates to use for every phenotype
+
+# Genotype files
+grm_high_quality_pruned_stem = # Write here the path to plink files containing high quality markers for step 1
+bgenPath = 'working_directory/MOBAGENETICS/genotypes-base/imputed/all/bgen' # Write here the path to the bgen files
+
+# Result folders
+regenieStep1Folder = 'working_directory/regenie/step_1'
+regenieStep2Folder = 'working_directory/regenie/step_2'
+regenieOutputFolder = 'working_directory/regenie/results'
+docsOutputFolder = 'docs/regenie/'
+
+
+####################### RUN SETTINGS ###########################################
+
+# Specifies what phenotypes and samples to use in analyses
+phenos = ['z_pheno_a', 'z_pheno_b', 'z_pheno_c']
+populations = ['children', 'fathers', 'mothers', 'parents']
+
+# The chromosomes to run
+chromosomes = ['X']
+chromosomes.extend(range(1, 23))
+
+
+# Create an output folder for every phenotype
+for pheno in phenos:
+    phenoOutputFolder = os.path.join(regenieOutputFolder, pheno)
+    if not os.path.isdir(phenoOutputFolder):
+        os.mkdir(phenoOutputFolder)
+        prunedFolder = os.path.join(phenoOutputFolder, 'pruned')
+        if not os.path.isdir(prunedFolder):
+            os.mkdir(prunedFolder)
+
+
+# Load covariates from standardization details
+with open(phenoStandardizationFile, 'r') as myfile:
+    data = myfile.read()
+
+phenoStandardizationDetails = json.loads(data)
+
+# Function to generate covariate commands
+def getCovariates(pheno):
+    result = ''
+    for i in range(0, len(phenoStandardizationDetails[pheno]['controlVariables'])):
+        if i > 0:
+            result += ' \
+            '
+        result += '--covarCol ' + phenoStandardizationDetails[pheno]['controlVariables'][i]
+    return result
+
+# Function returning the agrument for binary traits when necessary
+def getBinary1(pheno):
+    if phenoStandardizationDetails[pheno]['phenoType'] == 'Binary':
+        return "--bt \\"
+    return ""
+
+# Function returning the agrument for binary traits when necessary
+def getBinary2(pheno):
+    if phenoStandardizationDetails[pheno]['phenoType'] == 'Binary':
+        return "--bt --firth \\"
+    return ""
+
+# Function to get the pheno file corresponding to the given population
+def getPhenoFile(population):
+    return os.path.join(phenoFolder, population)
+
+# Function to get the sample id file corresponding to the given population
+def getSampleIdFile(population):
+    return os.path.join(phenoFolder, population + '_id')
+
+
+############################## RULES ###########################################
+
+rule all:
+    input:
+        expand(os.path.join(regenieOutputFolder, '{pheno}', 'step2_pop_{population}_pheno_{pheno}_{chr}.regenie'), pheno=phenos, population=populations, chr=chromosomes)
+        #expand(os.path.join(docsOutputFolder, '{pheno}', '{pheno}_{population}.md'), pheno=phenos, population=populations)
+
+rule filter_mac:
+    'Filter mac for Step 1 of Regenie'
+    input:
+        grmBed = grm_high_quality_pruned_stem + '.bed'
+    params:
+        grmStem = grm_high_quality_pruned_stem,
+        variantStem = os.path.join(regenieStep1Folder, "grm_mac500")
+    output:
+        variantList = os.path.join(regenieStep1Folder, "grm_mac500.snplist")
+    shell:
+        """
+        /home/marc/bin/plink2/plink2 \
+        --bfile {params.grmStem} \
+        --mac 500 \
+        --write-snplist \
+        --out {params.variantStem}
+        """
+
+rule regenie_step1:
+    'Step 1 of Regenie'
+    input:
+        grmBed = grm_high_quality_pruned_stem + '.bed',
+        phenoFile = lambda wildcards: getPhenoFile(wildcards.population),
+        samplesList = lambda wildcards: getSampleIdFile(wildcards.population),
+        variantList = os.path.join(regenieStep1Folder, "grm_mac500.snplist")
+    output:
+        outputFile = os.path.join(regenieStep1Folder, 'step1_pop_{population}_pheno_{pheno}_pred.list')
+    params:
+        grmStem = grm_high_quality_pruned_stem,
+        tempOutput = temp(os.path.join(regenieStep1Folder, 'step1_{population}_{pheno}_temp')),
+        phenoBinary = lambda wildcards: getBinary1(wildcards.pheno),
+        phenoCovariates = lambda wildcards: getCovariates(wildcards.pheno),
+        parametersOutput = os.path.join(regenieStep1Folder, 'step1_pop_{population}_pheno_{pheno}')
+    conda:
+        "envs/regenie_1.0.yaml"
+    threads: 24
+    shell:
+        """
+        regenie \
+        --step 1 \
+        --threads {threads} \
+        --gz \
+        --bed {params.grmStem} \
+        --phenoFile {input.phenoFile} \
+        --phenoCol {wildcards.pheno} \
+        --covarFile {input.phenoFile} \
+        --covarCol ROTTERDAM1 \
+        --covarCol ROTTERDAM2 \
+        --covarCol HARVEST \
+        --covarCol NORMENT-FEB18 \
+        --covarCol NORMENT-JUN15 \
+        --covarCol NORMENT-MAY16 \
+        --covarCol NORMENT-JAN15 \
+        --covarCol TED \
+        {params.phenoCovariates} \
+        --covarCol pc1 \
+        --covarCol pc2 \
+        --covarCol pc3 \
+        --covarCol pc4 \
+        --covarCol pc5 \
+        --covarCol pc6 \
+        --covarCol pc7 \
+        --covarCol pc8 \
+        --covarCol pc9 \
+        --covarCol pc10 \
+        --keep {input.samplesList} \
+        --extract {input.variantList} \
+        --bsize 1000 \
+        {params.phenoBinary} \
+        --bt \
+        --lowmem \
+        --lowmem-prefix {params.tempOutput} \
+        --out {params.parametersOutput}
+        """
+
+rule REGENIE_step2:
+    'Step 2 of Regenie'
+    input:
+        bgen = '/home/ubuntu/MOBAGENETICS/genotypes-base/imputed/all/bgen/{chr}.bgen',
+        phenoFile = lambda wildcards: getPhenoFile(wildcards.population),
+        step1File = os.path.join(regenieStep1Folder, 'step1_pop_{population}_pheno_{pheno}_pred.list'),
+        samplesList = '/home/ubuntu/MOBAGENETICS/genotypes-base/imputed/all/bgen/{chr}.sample'
+    output:
+        outputFile = os.path.join(regenieOutputFolder, '{pheno}', 'step2_pop_{population}_pheno_{pheno}_{chr}.regenie')
+    params:
+        phenoBinary = lambda wildcards: getBinary2(wildcards.pheno),
+        phenoCovariates = lambda wildcards: getCovariates(wildcards.pheno),
+        outputStem = os.path.join(regenieOutputFolder, '{pheno}', 'step2_pop_{population}_pheno_{pheno}_{chr}')
+    conda:
+        "envs/regenie_1.0.yaml"
+    threads: 8
+    shell:
+        """
+        regenie \
+        --step 2 \
+        --bgen {input.bgen} \
+        --sample {input.samplesList} \
+        --phenoFile {input.phenoFile} \
+        --phenoCol {wildcards.pheno} \
+        --covarFile {input.phenoFile} \
+        --covarCol ROTTERDAM1 \
+        --covarCol ROTTERDAM2 \
+        --covarCol HARVEST \
+        --covarCol NORMENT-FEB18 \
+        --covarCol NORMENT-JUN15 \
+        --covarCol NORMENT-MAY16 \
+        --covarCol NORMENT-JAN15 \
+        --covarCol TED \
+        {params.phenoCovariates} \
+        --covarCol pc1 \
+        --covarCol pc2 \
+        --covarCol pc3 \
+        --covarCol pc4 \
+        --covarCol pc5 \
+        --covarCol pc6 \
+        --covarCol pc7 \
+        --covarCol pc8 \
+        --covarCol pc9 \
+        --covarCol pc10 \
+        --bsize 400 \
+        {params.phenoBinary} \
+        --approx \
+        --minINFO 0.6 \
+        --threads {threads} \
+        --pred {input.step1File} \
+        --out {params.outputStem} \
+        --verbose
+        """
