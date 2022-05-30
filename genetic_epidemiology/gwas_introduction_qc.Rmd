@@ -102,31 +102,63 @@ table(pos_data$genotype)
 
 Estimate the alternative allele frequency: `r round(100 * sum(pos_data$genotype) / (2 * nrow(pos_data)), 1)` %.
 
-Build a histogram of alternative allele frequencies for this data set.
+Load summary information on the variants in one chromosome of MoBa available at [TODO].
 
 ```{r }
 
-allele_frequencies <- snp_data %>% 
-  group_by(
-    position
-  ) %>% 
-  summarize(
-    alternative_allele_frequency = 100 * sum(genotype) / (2 * n())
-  )
+file_path <- "/home/marc/Projects/tutorials/data/22-markerinfo.gz"
+
+marker_info <- read.table(
+  file = file_path,
+  sep = "\t",
+  header = F,
+  stringsAsFactors = F
+) %>% 
+  clean_names()
+
+names(marker_info) <- c("chromosome", "position", "id", "ref", "alt", "typed", "info", "ref_panel_af")
+
+```
+
+_What is the content of the different columns?_
+
+Compute the share of genotyped markers.
+
+```{r }
+
+n_genotyped <- sum(marker_info$typed == 1)
+
+total <- nrow(marker_info)
+
+share_genotyped <- round(100 * n_genotyped / total, 1)
+
+print(glue("{n_genotyped} markers of {total} are genotyped ({share_genotyped} %)"))
+
+```
+
+_How can we conduct genome-wide analyses when probing only `r share_genotyped` variants? How will this influence our results?_
+
+Build a histogram of info scores for non-genotyped markers.
+
+```{r }
+
+hist(marker_info$info[marker_info$typed != 1])
+
+non_genotyped_marker_info <- marker_info[marker_info$typed != 1, ]
 
 ggplot() +
   geom_histogram(
-    data = allele_frequencies,
+    data = non_genotyped_marker_info,
     mapping = aes(
-      x = alternative_allele_frequency
+      x = info
     ),
-    col = "darkblue",
-    fill = "darkblue",
+    col = "darkred",
+    fill = "darkred",
     alpha = 0.1,
     bins = 20
   ) +
   scale_x_continuous(
-    name = "Alternative allele frequency [%]"
+    name = "Info score"
   ) +
   scale_y_continuous(
     name = "# variants",
@@ -137,9 +169,65 @@ ggplot() +
 
 ```
 
-The alternative allele frequencies in this data set are comprised between `r min(allele_frequencies$alternative_allele_frequency)` % and `r max(allele_frequencies$alternative_allele_frequency)` %.
+_How would you use this variable to remove low quality markers?_
 
-_Would you filter out some of these variants prior to analysis?_
+Compute the minor allele frequency in the reference panel, and build a histogram.
+
+```{r }
+
+non_genotyped_marker_info <- non_genotyped_marker_info %>% 
+  mutate(
+    minor_allele_frequency = 100 * ifelse(ref_panel_af > 0.5, 1 - ref_panel_af, ref_panel_af)
+  )
+
+ggplot() +
+  geom_histogram(
+    data = non_genotyped_marker_info,
+    mapping = aes(
+      x = minor_allele_frequency
+    ),
+    col = "darkblue",
+    fill = "darkblue",
+    alpha = 0.1,
+    bins = 20
+  ) +
+  scale_x_continuous(
+    name = "Minor allele frequency [%]"
+  ) +
+  scale_y_continuous(
+    name = "# variants",
+    expand = expansion(
+      mult = c(0, 0.05)
+    )
+  )
+
+```
+
+_How does this compare to the histogram obtained previously?_
+
+Plot the info score against the minor allele frequency.
+
+```{r }
+
+ggplot() +
+  geom_point(
+    data = non_genotyped_marker_info,
+    mapping = aes(
+      x = minor_allele_frequency,
+      y = info
+    ),
+    alpha = 0.1
+  ) +
+  scale_x_continuous(
+    name = "Minor allele frequency [%]"
+  ) +
+  scale_y_continuous(
+    name = "Info score"
+  )
+
+```
+
+_Can you explain this trend? Which markers would you keep for a GWAS?_
 
 ## Phenotypes
 
