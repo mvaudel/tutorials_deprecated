@@ -142,8 +142,6 @@ Build a histogram of info scores for non-genotyped markers.
 
 ```{r }
 
-hist(marker_info$info[marker_info$typed != 1])
-
 non_genotyped_marker_info <- marker_info[marker_info$typed != 1, ]
 
 ggplot() +

@@ -184,109 +184,202 @@ Build a QQ plot. Note: there are dedicated packages that can do this but for the
 
 # Compute expected p-values
 
-
 plot_data <- gwas_results %>%
   mutate(
     logP = -log10(p)
   ) %>% 
-        arrange(
-            logP
-        ) %>% 
-        mutate(
-            expectedLogP = sort(-log10(ppoints(n = n())))
-        )
-    
-    # Axis
-    
-    maxValue <- max(plot_data$logP, plot_data$expectedLogP, 10)
-    
-    
-    # Build plot
-    ggplot(
-        data = plot_data
-    ) + 
-        geom_abline(
-            slope = 1,
-            intercept = 0,
-            linetype = "dotted"
-        ) +
-        geom_point(
-            mapping = aes(
-                x = expectedLogP,
-                y = logP
-            ),
-            size = 1
-        ) +
-        scale_y_continuous(
-            name = "p-value [-log10]", 
-            limits = c(0, maxValue),
-            expand = expansion(
-                mult = 0.02
-            )
-        ) +
-        scale_x_continuous(
-            name = "Expected p-value [-log10]",
-            limits = c(0, maxValue),
-            expand = expansion(
-                mult = 0.02
-            )
-        )
+  arrange(
+    logP
+  ) %>% 
+  mutate(
+    expectedLogP = sort(-log10(ppoints(n = n())))
+  )
+
+# Axis
+
+maxValue <- max(plot_data$logP, plot_data$expectedLogP, 10)
+
+
+# Build plot
+ggplot(
+  data = plot_data
+) + 
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    linetype = "dotted"
+  ) +
+  geom_point(
+    mapping = aes(
+      x = expectedLogP,
+      y = logP
+    ),
+    size = 1
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]", 
+    limits = c(0, maxValue),
+    expand = expansion(
+      mult = 0.02
+    )
+  ) +
+  scale_x_continuous(
+    name = "Expected p-value [-log10]",
+    limits = c(0, maxValue),
+    expand = expansion(
+      mult = 0.02
+    )
+  )
 
 ```
 
+Build a histogram of allele frequencies.
 
-Build a QQ plot. Note: there are dedicated packages that can do this but for the sake of the exercise we will write down the code.
+```{r }
+
+# Compute the maf
+plot_data <- plot_data %>% 
+  mutate(
+    minor_allele_frequency = ifelse(eaf > 0.5, 1 - eaf, eaf)
+  )
+
+# Build histogram
+ggplot(
+  data = plot_data
+) + 
+  geom_histogram(
+    mapping = aes(
+      x = 100 * minor_allele_frequency,
+    ),
+    size = 1,
+    bins = 50
+  ) +
+  scale_y_continuous(
+    name = "# Variants"
+  ) +
+  scale_x_continuous(
+    name = "Effect allele frequency [%]",
+    expand = expansion(
+      mult = c(0, 0.05)
+    )
+  )
+
+```
+
+This study included variants down to a minor allele frequency of `r 100*min(plot_data$minor_allele_frequency)` %.
+
+Build some maf categories.
+
+```{r }
+
+# Compute the maf
+plot_data <- plot_data %>% 
+  mutate(
+    maf_category = case_when(
+      minor_allele_frequency < 0.005 ~ "< 0.5 %",
+      minor_allele_frequency < 0.05 ~ "< 5 %",
+      T ~ ">= 5%"
+    ),
+    maf_category = factor(maf_category, levels = c("< 0.5 %", "< 5 %", ">= 5%"))
+  )
+
+table(plot_data$maf_category)/nrow(plot_data)
+
+```
+
+Build a QQ plot stratifying the variants per maf category.
 
 ```{r }
 
 # Compute expected p-values
 
-
-plot_data <- gwas_results %>%
-  mutate(
-    logP = -log10(p)
+plot_data_stratified <- plot_data %>%
+  group_by(
+    maf_category
   ) %>% 
-        arrange(
-            logP
-        ) %>% 
-        mutate(
-            expectedLogP = sort(-log10(ppoints(n = n())))
-        )
-    
-    # Axis
-    
-    maxValue <- max(plot_data$logP, plot_data$expectedLogP, 10)
-    
-    
-    # Build plot
-    ggplot(
-        data = plot_data
-    ) + 
-        geom_abline(
-            slope = 1,
-            intercept = 0,
-            linetype = "dotted"
-        ) +
-        geom_point(
-            mapping = aes(
-                x = expectedLogP,
-                y = logP
-            ),
-            size = 1
-        ) +
-        scale_y_continuous(
-            name = "p-value [-log10]", 
-            limits = c(0, maxValue),
-            expand = expansion(
-                mult = 0.02
-            )
-        ) +
-        scale_x_continuous(
-            name = "Expected p-value [-log10]",
-            limits = c(0, maxValue),
-            expand = expansion(
-                mult = 0.02
-            )
-        )
+  arrange(
+    logP
+  ) %>% 
+  mutate(
+    expectedLogP = sort(-log10(ppoints(n = n())))
+  ) %>% 
+  ungroup()
+
+# Axis
+
+maxValue <- max(plot_data_stratified$logP, plot_data_stratified$expectedLogP, 10)
+
+
+# Build plot
+ggplot(
+  data = plot_data_stratified
+) + 
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    linetype = "dotted"
+  ) +
+  geom_point(
+    mapping = aes(
+      x = expectedLogP,
+      y = logP,
+      col = maf_category
+    ),
+    size = 1
+  ) +
+  scale_y_continuous(
+    name = "p-value [-log10]", 
+    limits = c(0, maxValue),
+    expand = expansion(
+      mult = 0.02
+    )
+  ) +
+  scale_x_continuous(
+    name = "Expected p-value [-log10]",
+    limits = c(0, maxValue),
+    expand = expansion(
+      mult = 0.02
+    )
+  )
+
+```
+
+Plot the effect size estimate against the effect allele frequency.
+
+```{r }
+
+# Color the genome-wide significant hits differently
+
+plot_data <- plot_data %>% 
+  mutate(
+    gwas_significant = ifelse(p <= 5e-8, "p <= 5e-8", "p > 5e-8"),
+    gwas_significant = factor(gwas_significant, levels = c("p <= 5e-8", "p > 5e-8"))
+  )
+
+# Build plot
+ggplot(
+  data = plot_data
+) + 
+  geom_hline(
+    yintercept = 0
+  ) +
+  geom_point(
+    mapping = aes(
+      x = 100 * eaf,
+      y = beta,
+      col = gwas_significant
+    ),
+    size = 1
+  ) +
+  scale_y_continuous(
+    name = "Effect size estimate"
+  ) +
+  scale_x_continuous(
+    name = "Effect allele frequency [%]"
+  ) +
+  scale_color_manual(
+    name = "Significance",
+    values = c("darkred", "grey")
+  )
 
 ```
