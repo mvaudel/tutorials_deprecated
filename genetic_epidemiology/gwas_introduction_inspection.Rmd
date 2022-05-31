@@ -2,7 +2,7 @@
 title: "GWAS_introduction_inspection"
 author: "Marc Vaudel"
 date: '2022-05-23'
-output: html_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
@@ -39,7 +39,7 @@ theme_set(theme_bw(base_size = 13))
 
 ## Inspecting GWAS summary statistics
 
-Load results from the birth weight GWAS available [TODO!]
+Load results from the birth weight GWAS available at this [link](https://drive.google.com/file/d/1mn64G91258pDdDARVAS1cYlcof-Knu2n/view?usp=sharing).
 
 ```{r }
 

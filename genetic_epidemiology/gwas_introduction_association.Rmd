@@ -2,7 +2,7 @@
 title: "GWAS_introduction_association"
 author: "Marc Vaudel"
 date: '2022-05-23'
-output: html_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
@@ -102,7 +102,7 @@ table(pos_data$genotype)
 
 Estimate the alternative allele frequency: `r round(100 * sum(pos_data$genotype) / (2 * nrow(pos_data)), 1)` %.
 
-Load summary information on the variants in one chromosome of MoBa available at [TODO].
+Load summary information on the variants in one chromosome of MoBa available at this [link](https://drive.google.com/file/d/1yOumgGsa8u3w0C6F58MQAyQdhL756ChJ/view?usp=sharing).
 
 ```{r }
 
