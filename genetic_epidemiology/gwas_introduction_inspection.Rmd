@@ -27,6 +27,7 @@ library(glue) # A package to glue variables in strings
 
 library(curl) # A package to connect to urls
 library(httr) # A package to run http queries
+library(rjson) # A package to handle json files
 
 library(LDlinkR) # A package to query LDlink
 library(phenoscanner) # A package to query phenoscanner  NOTE: phenoscanner needs to be installed from https://github.com/phenoscanner/phenoscanner
