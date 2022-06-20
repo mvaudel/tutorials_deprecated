@@ -41,7 +41,10 @@ theme_set(theme_bw(base_size = 13))
 
 ## Load data
 
-:pencil2: Open the data set stored in `TODO`.
+:pencil2: Open the data set available at these links: 
+- [link1](https://drive.google.com/file/d/1T44fCPGgEQOGWYYS0QA8k5AEqq62Ge_2/view?usp=sharing)
+- [link2](https://drive.google.com/file/d/1VTd6hhg7UIeXi7TeXBp-tzdRGunFerNG/view?usp=sharing)
+- [link3](https://drive.google.com/file/d/1R1BYNiwUyTkkhTUKz-frruR0cuTyHw0y/view?usp=sharing)
 
 ```{r }
 
@@ -747,107 +750,4 @@ ggplot() +
 ```
 
 
-
-```{r }
-
-test <- read.table(
-  "/home/marc/Projects/Valeriya_somalogic/valeriya_pQTL/SS-217051_20210928/protein_abundances.txt", header = T, sep = "\t"
-)
-
-proteins <- read.table(
-  "/home/marc/Projects/Valeriya_somalogic/valeriya_pQTL/SS-217051_20210928/protein_abundances.txt", header = T, sep = "\t"
-)
-
-write.table(
-  x = test,
-  file = gzfile("/home/marc/Projects/tutorials/data/soma_example.gz"),
-  row.names = F,
-  col.names = T,
-  sep = "\t"
-)
-
-
-names(test)
-
-excl <- names(test)[1:15]
-
-for (colName in names(test)) {
-  
-  if (!colName %in% excl) {
-    
-    naValues <- is.na(test[[colName]])
-    zeroValues <- !is.na(test[[colName]]) & test[[colName]] == 0
-    
-    otherValues <- test[[colName]][!naValues & !zeroValues]
-    
-    logValues <- log10(otherValues)
-    
-    if (length(logValues) > 10) {
-      
-      sdLog <- sd(logValues)
-      
-      noise <- rnorm(n = length(test[[colName]]), mean = 0, sd = sdLog / 100)
-      
-      newValues <- ifelse(!naValues, 0, NA)
-      newValues <- ifelse(!naValues & !zeroValues, 10^(log10(test[[colName]]) + noise), NA)
-      
-      test[[colName]] <- newValues
-      
-    }
-  }
-}
-
-colName <- sample(names(test), 1)
-
-testPlot <- log10(test[[colName]])
-
-hist(testPlot)
-
-
-test$ScannerID <- paste0("scanner_", as.numeric(factor(test$ScannerID)))
-test$PlatePosition <- paste0("plate_position_", as.numeric(factor(test$PlatePosition)))
-proteins <- read.table("/home/marc/Projects/Valeriya_somalogic/valeriya_pQTL/SS-217051_20210928/protein_names.txt", header = T, sep = "\t", comment.char = "", quote = "")
-
-write.table(
-  x = proteins,
-  file = gzfile("/home/marc/Projects/tutorials/data/soma_example_3.gz"),
-  row.names = F,
-  col.names = T,
-  sep = "\t"
-)
-
-samples <- read.table("/home/marc/Projects/Valeriya_somalogic/valeriya_pQTL/dolce_groups.txt", header = T, sep = "\t")
-
-View(samples)
-
-samples$Age <- samples$Age + rnorm(nrow(samples))
-samples$BMI <- samples$BMI + rnorm(nrow(samples))
-
-idMappingUnique <- unique(idMapping)
-idFactor <- factor(idMappingUnique)
-idKey <- as.numeric(idFactor)
-names(idKey) <- as.character(levels(idFactor))
-
-samples$id <- as.numeric(idKey[as.character(samples$ID)])
-
-samples$group <- ifelse(samples$group == "LADA", "Class_L", samples$group)
-samples$group <- ifelse(samples$group == "T1D", "Class_1", samples$group)
-samples$group <- ifelse(samples$group == "T2D_insulin", "Class_2a", samples$group)
-samples$group <- ifelse(samples$group == "T2D_NO_insulin", "Class_2b", samples$group)
-table(samples$group)
-
-samples$Sex[sample(1:nrow(samples), 10)] <- 0
-samples$Sex[sample(1:nrow(samples), 10)] <- 1
-
-samples2 <- samples[, c("id", "Age", "BMI", "Sex", "group")]
-
-write.table(
-  x = samples2,
-  file = gzfile("/home/marc/Projects/tutorials/data/soma_example_2.gz"),
-  row.names = F,
-  col.names = T,
-  sep = "\t"
-)
-
-```
 
