@@ -41,7 +41,7 @@ system, use the `ìnstall_packages` command to install them.
     # Resolve conflicting function names
     conflict_prefer("filter", "dplyr")
 
-    ## [conflicted] Will prefer dplyr::filter over any other package
+    ## [conflicted] Will prefer dplyr::filter over any other package.
 
     # Set the theme for plots
     theme_set(theme_bw(base_size = 13))
@@ -49,7 +49,7 @@ system, use the `ìnstall_packages` command to install them.
 ## Load data
 
 Load the example data available at this
-[link](https://drive.google.com/file/d/1hdESYbyRrfBZALTgV3h4TSJ82Od-bShv/view?usp=sharing).
+[link](https://drive.google.com/file/d/1O1rBQ1ldOEyCp1yzh2w9hIkGFCrkRZlN/view?usp=drive_link).
 
     file_path <- "/home/marc/Projects/tutorials/data/lm_example.gz"
 
@@ -103,19 +103,19 @@ of participants with a given genotype.
       glue("# Number of participants for a given genotype for the variant at position {sampled_position}")
     )
 
-    ## # Number of participants for a given genotype for the variant at position 37611987
+    ## # Number of participants for a given genotype for the variant at position 37993810
 
     table(pos_data$genotype)
 
     ## 
     ##    0    1    2 
-    ## 1406 1959  635
+    ##  661 1962 1377
 
-Estimate the alternative allele frequency: 40.4 %.
+Estimate the alternative allele frequency: 59 %.
 
 Load summary information on the variants in one chromosome of MoBa
 available at this
-[link](https://drive.google.com/file/d/1yOumgGsa8u3w0C6F58MQAyQdhL756ChJ/view?usp=sharing).
+[link](https://drive.google.com/file/d/18XqRm2PzI1JIUKB75ePw8aHV4CfNeGTR/view?usp=drive_link).
 
     file_path <- "/home/marc/Projects/tutorials/data/22-markerinfo.gz"
 
@@ -290,7 +290,7 @@ between `genotype` and `pheno_a`.
       glue("# Association results at position {sampled_position}")
     )
 
-    ## # Association results at position 37611987
+    ## # Association results at position 37993810
 
     summary(association_results)
 
@@ -300,16 +300,16 @@ between `genotype` and `pheno_a`.
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -3.8509 -0.6752  0.0062  0.6743  3.2734 
+    ## -3.9335 -0.6815 -0.0018  0.6830  3.8171 
     ## 
     ## Coefficients:
     ##             Estimate Std. Error t value Pr(>|t|)
-    ## (Intercept) -0.03972    0.02451  -1.621    0.105
-    ## genotype     0.02664    0.02311   1.153    0.249
+    ## (Intercept)  0.01750    0.03170   0.552    0.581
+    ## genotype    -0.01328    0.02319  -0.572    0.567
     ## 
-    ## Residual standard error: 1.005 on 3998 degrees of freedom
-    ## Multiple R-squared:  0.0003323,  Adjusted R-squared:  8.225e-05 
-    ## F-statistic: 1.329 on 1 and 3998 DF,  p-value: 0.2491
+    ## Residual standard error: 1.014 on 3998 degrees of freedom
+    ## Multiple R-squared:  8.196e-05,  Adjusted R-squared:  -0.0001681 
+    ## F-statistic: 0.3277 on 1 and 3998 DF,  p-value: 0.567
 
 *How do you interpret these results? Is there a significant
 association?*
@@ -423,10 +423,10 @@ Run the association for all variants and all phenotypes.
       
     }
 
-    ## 2022-05-31 09:02:36 - Processing pheno_a
-    ## 2022-05-31 09:03:14 - Processing pheno_b
-    ## 2022-05-31 09:03:54 - Processing pheno_c
-    ## 2022-05-31 09:04:34 - Processing pheno_d
+    ## 2023-07-25 09:53:03 - Processing pheno_a
+    ## 2023-07-25 09:53:37 - Processing pheno_b
+    ## 2023-07-25 09:54:10 - Processing pheno_c
+    ## 2023-07-25 09:54:45 - Processing pheno_d
 
     end_time = Sys.time()
 
@@ -435,7 +435,7 @@ Run the association for all variants and all phenotypes.
     processing_time = difftime(end_time, start_time)
 
 The analysis of these 1756 variants and 4 phenotypes using 15 threads
-was conducted in 2.6 mins.
+was conducted in 2.3 mins.
 
 *How long would it take to process one phenotype over the entire genome?
 How can we speed up this process?*
@@ -488,7 +488,7 @@ variant of strongest association.
       glue("# Association results at position {sampled_position}")
     )
 
-    ## # Association results at position 37611987
+    ## # Association results at position 37993810
 
     summary(association_results)
 
@@ -722,10 +722,10 @@ Include age, sex, batches, and ten PCs to the model and rerun.
       
     }
 
-    ## 2022-05-31 09:05:52 - Processing pheno_a
-    ## 2022-05-31 09:06:34 - Processing pheno_b
-    ## 2022-05-31 09:07:19 - Processing pheno_c
-    ## 2022-05-31 09:08:01 - Processing pheno_d
+    ## 2023-07-25 09:56:05 - Processing pheno_a
+    ## 2023-07-25 09:56:44 - Processing pheno_b
+    ## 2023-07-25 09:57:25 - Processing pheno_c
+    ## 2023-07-25 09:58:05 - Processing pheno_d
 
     end_time = Sys.time()
 
@@ -734,7 +734,7 @@ Include age, sex, batches, and ten PCs to the model and rerun.
     processing_time = difftime(end_time, start_time)
 
 The analysis of these 1756 variants and 4 phenotypes using 15 threads
-was conducted in 2.9 mins.
+was conducted in 2.7 mins.
 
 Plot again the p-value per position.
 
@@ -779,7 +779,7 @@ association.
       glue("# Association results at position {sampled_position}")
     )
 
-    ## # Association results at position 37611987
+    ## # Association results at position 37993810
 
     summary(association_results)
 
