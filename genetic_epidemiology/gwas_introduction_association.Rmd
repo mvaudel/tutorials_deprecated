@@ -40,7 +40,7 @@ theme_set(theme_bw(base_size = 13))
 
 ## Load data
 
-Load the example data available at this [link](https://drive.google.com/file/d/1hdESYbyRrfBZALTgV3h4TSJ82Od-bShv/view?usp=sharing).
+Load the example data available at this [link](https://drive.google.com/file/d/1O1rBQ1ldOEyCp1yzh2w9hIkGFCrkRZlN/view?usp=drive_link).
 
 ```{r }
 
@@ -102,7 +102,7 @@ table(pos_data$genotype)
 
 Estimate the alternative allele frequency: `r round(100 * sum(pos_data$genotype) / (2 * nrow(pos_data)), 1)` %.
 
-Load summary information on the variants in one chromosome of MoBa available at this [link](https://drive.google.com/file/d/1yOumgGsa8u3w0C6F58MQAyQdhL756ChJ/view?usp=sharing).
+Load summary information on the variants in one chromosome of MoBa available at this [link](https://drive.google.com/file/d/18XqRm2PzI1JIUKB75ePw8aHV4CfNeGTR/view?usp=drive_link).
 
 ```{r }
 
